@@ -13,6 +13,7 @@
 
 # Temporary files
 *.tmp
+.superpowers/
 
 # Backup files
 *.bak
