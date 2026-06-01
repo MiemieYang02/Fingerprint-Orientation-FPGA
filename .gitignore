@@ -25,9 +25,17 @@ xsim.dir/
 *.tmp
 .superpowers/
 dfx_runtime.txt
+clockInfo.txt
 dir_map.txt
+dir_map.png
 dir_map.ppm
 fingerprint_direction_fpga/phase1_utilization_synth.rpt
+fingerprint_direction_fpga/hdmi_static_utilization_synth.rpt
+fingerprint_direction_fpga/hdmi_static_timing_summary.rpt
+fingerprint_direction_fpga/fingerprint_hdmi_static.bit
+fingerprint_direction_fpga/ref_hdmi_static_utilization_synth.rpt
+fingerprint_direction_fpga/ref_hdmi_static_timing_summary.rpt
+fingerprint_direction_fpga/fingerprint_ref_hdmi_static.bit
 
 # Backup files
 *.bak

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Convert a 16x16 direction map text file into a simple PPM preview.
+"""Convert a 16x16 direction map text file into a PNG or PPM preview.
 
-The script name keeps the project terminology from the design spec. It writes a
-PPM image by default so it has no third-party dependency.
+The PNG writer uses only the Python standard library, so no Pillow dependency is
+required.
 """
 
 import argparse
+import binascii
+import struct
+import zlib
 from pathlib import Path
 
 
@@ -55,10 +58,49 @@ def write_ppm(values, path, scale):
                 f.write(row)
 
 
+def render_rgb(values, scale):
+    rows = []
+    for by in range(16):
+        for sy in range(scale):
+            row = bytearray()
+            for bx in range(16):
+                r, g, b = COLORS[values[by][bx]]
+                if sy == scale // 2:
+                    r, g, b = 255, 255, 255
+                for sx in range(scale):
+                    pixel = (255, 255, 255) if sx == scale // 2 else (r, g, b)
+                    row.extend(pixel)
+            rows.append(bytes(row))
+    return rows
+
+
+def png_chunk(chunk_type, data):
+    body = chunk_type + data
+    crc = binascii.crc32(body) & 0xffffffff
+    return struct.pack(">I", len(data)) + body + struct.pack(">I", crc)
+
+
+def write_png(values, path, scale):
+    width = 16 * scale
+    height = 16 * scale
+    raw = bytearray()
+    for row in render_rgb(values, scale):
+        raw.append(0)  # PNG filter type 0.
+        raw.extend(row)
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    compressed = zlib.compress(bytes(raw), level=9)
+    with path.open("wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n")
+        f.write(png_chunk(b"IHDR", ihdr))
+        f.write(png_chunk(b"IDAT", compressed))
+        f.write(png_chunk(b"IEND", b""))
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Convert dir_map.txt to a color PPM preview.")
+    parser = argparse.ArgumentParser(description="Convert dir_map.txt to a color PNG or PPM preview.")
     parser.add_argument("input", nargs="?", default="dir_map.txt", help="input direction map text file")
-    parser.add_argument("output", nargs="?", default="dir_map.ppm", help="output PPM preview path")
+    parser.add_argument("output", nargs="?", default="dir_map.png", help="output preview path (.png or .ppm)")
     parser.add_argument("--scale", type=int, default=20, help="pixels per direction block")
     args = parser.parse_args()
 
@@ -66,7 +108,11 @@ def main():
         raise SystemExit("--scale must be at least 4")
 
     values = read_map(Path(args.input))
-    write_ppm(values, Path(args.output), args.scale)
+    output = Path(args.output)
+    if output.suffix.lower() == ".ppm":
+        write_ppm(values, output, args.scale)
+    else:
+        write_png(values, output, args.scale)
     print(f"WROTE {args.output}")
 
 
