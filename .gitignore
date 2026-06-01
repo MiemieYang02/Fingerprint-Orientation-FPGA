@@ -5,15 +5,29 @@
 .sim/
 .runs/
 .gen/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.runs/
+*.gen/
+.Xil/
 
 # Logs
 *.log
 *.jou
 *.str
+*.pb
+*.wdb
+xsim.dir/
 
 # Temporary files
 *.tmp
 .superpowers/
+dfx_runtime.txt
+dir_map.txt
+dir_map.ppm
+fingerprint_direction_fpga/phase1_utilization_synth.rpt
 
 # Backup files
 *.bak
