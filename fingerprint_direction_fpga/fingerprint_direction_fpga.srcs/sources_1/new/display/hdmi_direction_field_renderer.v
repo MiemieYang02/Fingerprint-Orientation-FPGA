@@ -46,24 +46,43 @@ wire [7:0] image_x = field_x[8:1];
 wire [7:0] image_y = field_y[8:1];
 wire [15:0] image_addr = image_y * IMAGE_W + image_x;
 
-wire in_segment_x = (cell_x >= 5'd8) && (cell_x <= 5'd23);
-wire in_segment_y = (cell_y >= 5'd8) && (cell_y <= 5'd23);
-wire horizontal_line = in_segment_x && (cell_y >= 5'd14) && (cell_y <= 5'd17);
-wire vertical_line = in_segment_y && (cell_x >= 5'd14) && (cell_x <= 5'd17);
-wire diag_down = in_segment_x && in_segment_y &&
-                 ((cell_x == cell_y) ||
-                  (cell_x + 5'd1 == cell_y) ||
-                  (cell_y + 5'd1 == cell_x));
-wire diag_up = in_segment_x && in_segment_y &&
-               ((diag_sum == 6'd31) ||
-                (diag_sum == 6'd30) ||
-                (diag_sum == 6'd32));
+wire signed [6:0] cell_sx = $signed({1'b0, cell_x}) - 7'sd16;
+wire signed [6:0] cell_sy = $signed({1'b0, cell_y}) - 7'sd16;
+wire signed [8:0] sx = {{2{cell_sx[6]}}, cell_sx};
+wire signed [8:0] sy = {{2{cell_sy[6]}}, cell_sy};
+
+wire in_segment_x = (cell_x >= 5'd6) && (cell_x <= 5'd25);
+wire in_segment_y = (cell_y >= 5'd6) && (cell_y <= 5'd25);
+wire in_segment = in_segment_x && in_segment_y;
+
+function near_center;
+    input signed [8:0] delta;
+    begin
+        near_center = (delta >= -9'sd2) && (delta <= 9'sd2);
+    end
+endfunction
+
+// Direction bins are ridge tangent angles over 0..180 degrees:
+// 0=0deg, 1=22.5deg, 2=45deg, 3=67.5deg, 4=90deg,
+// 5=112.5deg, 6=135deg, 7=157.5deg.
+wire line_0   = in_segment_x && near_center(sy);
+wire line_22  = in_segment && near_center((sy <<< 1) - sx);
+wire line_45  = in_segment && near_center(sy - sx);
+wire line_67  = in_segment && near_center(sy - (sx <<< 1));
+wire line_90  = in_segment_y && near_center(sx);
+wire line_112 = in_segment && near_center(sy + (sx <<< 1));
+wire line_135 = in_segment && near_center(sy + sx);
+wire line_157 = in_segment && near_center((sy <<< 1) + sx);
 
 wire direction_line =
-    ((read_block_dir == 3'd0 || read_block_dir == 3'd4) && horizontal_line) ||
-    ((read_block_dir == 3'd1 || read_block_dir == 3'd5) && diag_down) ||
-    ((read_block_dir == 3'd2 || read_block_dir == 3'd6) && vertical_line) ||
-    ((read_block_dir == 3'd3 || read_block_dir == 3'd7) && diag_up);
+    ((read_block_dir == 3'd0) && line_0)   ||
+    ((read_block_dir == 3'd1) && line_22)  ||
+    ((read_block_dir == 3'd2) && line_45)  ||
+    ((read_block_dir == 3'd3) && line_67)  ||
+    ((read_block_dir == 3'd4) && line_90)  ||
+    ((read_block_dir == 3'd5) && line_112) ||
+    ((read_block_dir == 3'd6) && line_135) ||
+    ((read_block_dir == 3'd7) && line_157);
 
 assign read_block_x = in_field ? field_x[8:5] : 4'd0;
 assign read_block_y = in_field ? field_y[8:5] : 4'd0;

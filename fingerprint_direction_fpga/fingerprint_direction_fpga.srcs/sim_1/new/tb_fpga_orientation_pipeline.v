@@ -66,7 +66,7 @@ module tb_fpga_orientation_pipeline;
     always @(posedge clk) begin
         if (rst_n && block_valid) begin
             block_count = block_count + 1;
-            if (block_dir !== 3'd0) begin
+            if (block_dir !== 3'd4) begin
                 $display("PIPELINE_DIRECTION_MISMATCH block_x=%0d block_y=%0d dir=%0d", block_x, block_y, block_dir);
                 error_count = error_count + 1;
             end

@@ -41,7 +41,7 @@ module tb_fpga_orientation_top;
         if (rst_n && block_valid) begin
             block_count = block_count + 1;
             $fwrite(fd, "%0d %0d %0d\n", block_x, block_y, block_dir);
-            if (block_dir !== 3'd0) begin
+            if (block_dir !== 3'd4) begin
                 $display("DIRECTION_MISMATCH block_x=%0d block_y=%0d dir=%0d", block_x, block_y, block_dir);
                 error_count = error_count + 1;
             end

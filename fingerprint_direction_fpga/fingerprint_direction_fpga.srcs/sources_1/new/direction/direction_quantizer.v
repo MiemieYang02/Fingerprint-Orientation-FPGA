@@ -25,8 +25,12 @@ module direction_quantizer (
             out_x <= in_x;
             out_y <= in_y;
             if (in_valid) begin
-                rounded_angle = {1'b0, angle_code} + 9'd16;
-                dir_bin <= rounded_angle[8] ? 3'd0 : rounded_angle[7:5];
+                // Sobel/CORDIC gives the gradient normal. Fingerprint direction
+                // fields use the ridge tangent, so rotate by 90 degrees before
+                // quantizing. angle_code is 256 units per 180 degrees, so 90 deg
+                // is 128 units; lower 8 bits naturally wrap modulo 180 degrees.
+                rounded_angle = {1'b0, angle_code} + 9'd128 + 9'd16;
+                dir_bin <= rounded_angle[7:5];
             end
         end
     end

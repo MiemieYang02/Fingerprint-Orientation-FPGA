@@ -70,8 +70,10 @@ module tb_hdmi_direction_field_renderer;
         expect_pixel(11'd256, 11'd128, 3'd0, 4'd0, 4'd0, 16'hEF5D);
         expect_pixel(11'd271, 11'd143, 3'd0, 4'd0, 4'd0, 16'hFFFF);
         expect_pixel(11'd287, 11'd143, 3'd0, 4'd0, 4'd0, 16'hEF5D);
-        expect_pixel(11'd304, 11'd192, 3'd2, 4'd1, 4'd2, 16'hEF5D);
-        expect_pixel(11'd335, 11'd208, 3'd2, 4'd2, 4'd2, 16'hFFFF);
+        expect_pixel(11'd335, 11'd208, 3'd4, 4'd2, 4'd2, 16'hFFFF);
+        expect_pixel(11'd335, 11'd212, 3'd0, 4'd2, 4'd2, 16'hEF5D);
+        expect_pixel(11'd367, 11'd239, 3'd2, 4'd3, 4'd3, 16'hFFFF);
+        expect_pixel(11'd367, 11'd208, 3'd6, 4'd3, 4'd2, 16'hFFFF);
 
         frame_ready = 1'b0;
         expect_pixel(11'd271, 11'd143, 3'd0, 4'd0, 4'd0, 16'h7BEF);
