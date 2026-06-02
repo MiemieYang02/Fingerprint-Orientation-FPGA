@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 项目说明 / Project README
+    url: https://github.com/MiemieYang02/Fingerprint-Orientation-FPGA
+    about: 查看项目说明文档 / Read the project documentation

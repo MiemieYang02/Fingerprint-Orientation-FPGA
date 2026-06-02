@@ -1,0 +1,13 @@
+name: 讨论交流 / Communication
+description: 提出问题或进行项目讨论 / Ask questions or discuss the project
+title: "[Discussion] "
+labels: ["question"]
+body:
+  - type: textarea
+    id: topic
+    attributes:
+      label: 讨论内容
+      description: 请写下你想讨论的问题
+      placeholder: 例如：Sobel 后接 CORDIC 的数据位宽应该怎么选？
+    validations:
+      required: true
