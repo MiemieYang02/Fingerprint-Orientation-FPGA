@@ -60,6 +60,7 @@ set sim_files [list \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_fpga_orientation_top.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_fpga_orientation_pipeline.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_direction_quantizer.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_block_direction_stat_confidence.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_static_image_source.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_fpga_orientation_static_top.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_direction_field_buffer.v] \

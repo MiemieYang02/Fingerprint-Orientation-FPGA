@@ -12,6 +12,7 @@ module hdmi_direction_field_renderer #(
     input  wire [10:0] pixel_ypos,
     input  wire        frame_ready,
     input  wire [2:0]  read_block_dir,
+    input  wire        read_block_active,
     output wire [3:0]  read_block_x,
     output wire [3:0]  read_block_y,
     output reg  [15:0] pixel_data
@@ -74,7 +75,7 @@ wire line_112 = in_segment && near_center(sy + (sx <<< 1));
 wire line_135 = in_segment && near_center(sy + sx);
 wire line_157 = in_segment && near_center((sy <<< 1) + sx);
 
-wire direction_line =
+wire direction_line = read_block_active && (
     ((read_block_dir == 3'd0) && line_0)   ||
     ((read_block_dir == 3'd1) && line_22)  ||
     ((read_block_dir == 3'd2) && line_45)  ||
@@ -82,7 +83,7 @@ wire direction_line =
     ((read_block_dir == 3'd4) && line_90)  ||
     ((read_block_dir == 3'd5) && line_112) ||
     ((read_block_dir == 3'd6) && line_135) ||
-    ((read_block_dir == 3'd7) && line_157);
+    ((read_block_dir == 3'd7) && line_157));
 
 assign read_block_x = in_field ? field_x[8:5] : 4'd0;
 assign read_block_y = in_field ? field_y[8:5] : 4'd0;

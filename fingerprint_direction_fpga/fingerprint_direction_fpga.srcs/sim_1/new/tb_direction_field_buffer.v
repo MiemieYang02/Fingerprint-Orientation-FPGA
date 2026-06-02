@@ -4,12 +4,14 @@ module tb_direction_field_buffer;
     reg clk;
     reg rst_n;
     reg block_valid;
+    reg block_active;
     reg [3:0] block_x;
     reg [3:0] block_y;
     reg [2:0] block_dir;
     reg [3:0] read_block_x;
     reg [3:0] read_block_y;
     wire [2:0] read_block_dir;
+    wire read_block_active;
     wire frame_ready;
 
     integer errors;
@@ -18,12 +20,14 @@ module tb_direction_field_buffer;
         .clk(clk),
         .rst_n(rst_n),
         .block_valid(block_valid),
+        .block_active(block_active),
         .block_x(block_x),
         .block_y(block_y),
         .block_dir(block_dir),
         .read_block_x(read_block_x),
         .read_block_y(read_block_y),
         .read_block_dir(read_block_dir),
+        .read_block_active(read_block_active),
         .frame_ready(frame_ready)
     );
 
@@ -36,9 +40,11 @@ module tb_direction_field_buffer;
         input [3:0] x;
         input [3:0] y;
         input [2:0] dir;
+        input       active;
         begin
             @(posedge clk);
             block_valid <= 1'b1;
+            block_active <= active;
             block_x <= x;
             block_y <= y;
             block_dir <= dir;
@@ -51,6 +57,7 @@ module tb_direction_field_buffer;
         errors = 0;
         rst_n = 1'b0;
         block_valid = 1'b0;
+        block_active = 1'b0;
         block_x = 4'd0;
         block_y = 4'd0;
         block_dir = 3'd0;
@@ -59,29 +66,32 @@ module tb_direction_field_buffer;
         repeat (4) @(posedge clk);
         rst_n = 1'b1;
 
-        write_block(4'd3, 4'd4, 3'd5);
+        write_block(4'd3, 4'd4, 3'd5, 1'b1);
         read_block_x = 4'd3;
         read_block_y = 4'd4;
         #1;
-        if (read_block_dir !== 3'd5 || frame_ready !== 1'b0) begin
-            $display("BUFFER_SINGLE_WRITE_FAIL dir=%0d ready=%0d", read_block_dir, frame_ready);
+        if (read_block_dir !== 3'd5 || read_block_active !== 1'b1 || frame_ready !== 1'b0) begin
+            $display("BUFFER_SINGLE_WRITE_FAIL dir=%0d active=%0d ready=%0d",
+                     read_block_dir, read_block_active, frame_ready);
             errors = errors + 1;
         end
 
-        write_block(4'd15, 4'd15, 3'd2);
+        write_block(4'd15, 4'd15, 3'd2, 1'b0);
         read_block_x = 4'd15;
         read_block_y = 4'd15;
         #1;
-        if (read_block_dir !== 3'd2 || frame_ready !== 1'b1) begin
-            $display("BUFFER_FRAME_READY_FAIL dir=%0d ready=%0d", read_block_dir, frame_ready);
+        if (read_block_dir !== 3'd2 || read_block_active !== 1'b0 || frame_ready !== 1'b1) begin
+            $display("BUFFER_FRAME_READY_FAIL dir=%0d active=%0d ready=%0d",
+                     read_block_dir, read_block_active, frame_ready);
             errors = errors + 1;
         end
 
         rst_n = 1'b0;
         @(posedge clk);
         #1;
-        if (read_block_dir !== 3'd0 || frame_ready !== 1'b0) begin
-            $display("BUFFER_RESET_FAIL dir=%0d ready=%0d", read_block_dir, frame_ready);
+        if (read_block_dir !== 3'd0 || read_block_active !== 1'b0 || frame_ready !== 1'b0) begin
+            $display("BUFFER_RESET_FAIL dir=%0d active=%0d ready=%0d",
+                     read_block_dir, read_block_active, frame_ready);
             errors = errors + 1;
         end
 

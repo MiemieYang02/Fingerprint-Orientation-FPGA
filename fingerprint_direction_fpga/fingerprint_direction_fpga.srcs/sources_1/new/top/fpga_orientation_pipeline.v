@@ -3,7 +3,9 @@
 // Stream-oriented fingerprint direction pipeline.
 // A real image ingress block should convert camera, DDR3, UART, SD, or host data
 // into this synchronous grayscale pixel stream before entering Sobel/CORDIC logic.
-module fpga_orientation_pipeline (
+module fpga_orientation_pipeline #(
+    parameter GRADIENT_THRESHOLD = 8
+) (
     input  wire       clk,
     input  wire       rst_n,
 
@@ -18,6 +20,7 @@ module fpga_orientation_pipeline (
 
     // One result per 16x16 block after Sobel, angle quantization, and statistics.
     output wire       block_valid,
+    output wire       block_active,
     output wire [3:0] block_x,
     output wire [3:0] block_y,
     output wire [2:0] block_dir,
@@ -42,16 +45,23 @@ module fpga_orientation_pipeline (
     wire signed [11:0] gy;
 
     wire angle_valid;
+    wire angle_vote_valid;
     wire [7:0] angle_x;
     wire [7:0] angle_y;
     wire [7:0] angle_code;
 
     wire dir_valid;
+    wire dir_vote_valid;
     wire [7:0] dir_x;
     wire [7:0] dir_y;
     wire [2:0] dir_bin;
 
     reg [63:0] done_pipe;
+
+    wire [11:0] abs_gx = gx[11] ? (~gx + 12'd1) : gx;
+    wire [11:0] abs_gy = gy[11] ? (~gy + 12'd1) : gy;
+    wire [12:0] gradient_strength = {1'b0, abs_gx} + {1'b0, abs_gy};
+    wire strong_gradient = sobel_valid && (gradient_strength >= GRADIENT_THRESHOLD);
 
     wire unused_frame_start = pixel_frame_start;
     wire unused_line_start = pixel_line_start;
@@ -91,11 +101,13 @@ module fpga_orientation_pipeline (
         .clk(clk),
         .rst_n(rst_n),
         .in_valid(sobel_valid),
+        .in_vote_valid(strong_gradient),
         .in_x(sobel_x),
         .in_y(sobel_y),
         .gx(gx),
         .gy(gy),
         .out_valid(angle_valid),
+        .out_vote_valid(angle_vote_valid),
         .out_x(angle_x),
         .out_y(angle_y),
         .angle_code(angle_code)
@@ -105,10 +117,12 @@ module fpga_orientation_pipeline (
         .clk(clk),
         .rst_n(rst_n),
         .in_valid(angle_valid),
+        .vote_valid(angle_vote_valid),
         .in_x(angle_x),
         .in_y(angle_y),
         .angle_code(angle_code),
         .out_valid(dir_valid),
+        .out_vote_valid(dir_vote_valid),
         .out_x(dir_x),
         .out_y(dir_y),
         .dir_bin(dir_bin)
@@ -118,10 +132,12 @@ module fpga_orientation_pipeline (
         .clk(clk),
         .rst_n(rst_n),
         .in_valid(dir_valid),
+        .vote_valid(dir_vote_valid),
         .in_x(dir_x),
         .in_y(dir_y),
         .dir_bin(dir_bin),
         .block_valid(block_valid),
+        .block_active(block_active),
         .block_x(block_x),
         .block_y(block_y),
         .block_dir(block_dir)

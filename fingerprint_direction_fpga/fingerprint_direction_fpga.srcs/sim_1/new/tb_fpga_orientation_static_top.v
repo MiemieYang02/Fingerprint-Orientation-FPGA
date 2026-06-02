@@ -7,6 +7,7 @@ module tb_fpga_orientation_static_top;
     reg rst_n;
 
     wire block_valid;
+    wire block_active;
     wire [3:0] block_x;
     wire [3:0] block_y;
     wire [2:0] block_dir;
@@ -14,6 +15,7 @@ module tb_fpga_orientation_static_top;
 
     integer block_count;
     integer nonzero_count;
+    integer active_count;
     reg [255:0] seen_block;
     integer block_index;
 
@@ -23,6 +25,7 @@ module tb_fpga_orientation_static_top;
         .clk(clk),
         .rst_n(rst_n),
         .block_valid(block_valid),
+        .block_active(block_active),
         .block_x(block_x),
         .block_y(block_y),
         .block_dir(block_dir),
@@ -38,6 +41,7 @@ module tb_fpga_orientation_static_top;
         rst_n = 1'b0;
         block_count = 0;
         nonzero_count = 0;
+        active_count = 0;
         seen_block = 256'd0;
         repeat (8) @(posedge clk);
         rst_n = 1'b1;
@@ -56,6 +60,9 @@ module tb_fpga_orientation_static_top;
             if (block_dir != 3'd0) begin
                 nonzero_count = nonzero_count + 1;
             end
+            if (block_active) begin
+                active_count = active_count + 1;
+            end
         end
 
         if (rst_n && frame_done) begin
@@ -67,14 +74,20 @@ module tb_fpga_orientation_static_top;
                 $display("STATIC_TOP_NO_DIRECTION_VARIATION");
                 $finish(1);
             end
-            $display("STATIC_TOP_TEST_PASS blocks=%0d nonzero=%0d", block_count, nonzero_count);
+            if (active_count == 0) begin
+                $display("STATIC_TOP_NO_ACTIVE_BLOCKS");
+                $finish(1);
+            end
+            $display("STATIC_TOP_TEST_PASS blocks=%0d nonzero=%0d active=%0d",
+                     block_count, nonzero_count, active_count);
             $finish;
         end
     end
 
     initial begin
         #2000000;
-        $display("STATIC_TOP_TEST_TIMEOUT blocks=%0d nonzero=%0d", block_count, nonzero_count);
+        $display("STATIC_TOP_TEST_TIMEOUT blocks=%0d nonzero=%0d active=%0d",
+                 block_count, nonzero_count, active_count);
         $finish(1);
     end
 endmodule

@@ -22,6 +22,7 @@ wire [10:0] pixel_ypos;
 wire [15:0] display_data;
 wire data_req;
 wire block_valid;
+wire block_active;
 wire [3:0] block_x;
 wire [3:0] block_y;
 wire [2:0] block_dir;
@@ -29,6 +30,7 @@ wire algorithm_frame_done;
 wire [3:0] read_block_x;
 wire [3:0] read_block_y;
 wire [2:0] read_block_dir;
+wire read_block_active;
 wire direction_frame_ready;
 
 assign rst_n = sys_rst_n & locked;
@@ -47,6 +49,7 @@ fpga_orientation_static_top u_orientation_static_top (
     .clk(pixel_clk),
     .rst_n(rst_n),
     .block_valid(block_valid),
+    .block_active(block_active),
     .block_x(block_x),
     .block_y(block_y),
     .block_dir(block_dir),
@@ -57,12 +60,14 @@ direction_field_buffer u_direction_field_buffer (
     .clk(pixel_clk),
     .rst_n(rst_n),
     .block_valid(block_valid),
+    .block_active(block_active),
     .block_x(block_x),
     .block_y(block_y),
     .block_dir(block_dir),
     .read_block_x(read_block_x),
     .read_block_y(read_block_y),
     .read_block_dir(read_block_dir),
+    .read_block_active(read_block_active),
     .frame_ready(direction_frame_ready)
 );
 
@@ -74,6 +79,7 @@ hdmi_direction_field_renderer u_renderer (
     .pixel_ypos(pixel_ypos),
     .frame_ready(direction_frame_ready),
     .read_block_dir(read_block_dir),
+    .read_block_active(read_block_active),
     .read_block_x(read_block_x),
     .read_block_y(read_block_y),
     .pixel_data(display_data)
