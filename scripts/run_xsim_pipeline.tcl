@@ -8,9 +8,7 @@ set rtl_files [list \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/cordic/cordic_angle_ip_wrapper.v \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/direction/direction_quantizer.v \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/direction/block_direction_stat.v \
-  fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/display/hdmi_overlay_stub.v \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/top/fpga_orientation_pipeline.v \
-  fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/top/fpga_orientation_top.v \
 ]
 
 foreach f $rtl_files {
@@ -19,6 +17,6 @@ foreach f $rtl_files {
   }
 }
 
-exec xvlog -sv {*}$rtl_files fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sim_1/new/tb_fpga_orientation_top.v
-exec xelab tb_fpga_orientation_top -s tb_fpga_orientation_top_sim
-exec xsim tb_fpga_orientation_top_sim -runall
+exec xvlog -sv {*}$rtl_files fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sim_1/new/tb_fpga_orientation_pipeline.v
+exec xelab tb_fpga_orientation_pipeline -s tb_fpga_orientation_pipeline_sim
+exec xsim tb_fpga_orientation_pipeline_sim -runall
