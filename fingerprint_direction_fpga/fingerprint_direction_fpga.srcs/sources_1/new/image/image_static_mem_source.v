@@ -7,7 +7,7 @@
 module image_static_mem_source #(
     parameter IMAGE_W = 256,
     parameter IMAGE_H = 256,
-    parameter MEM_FILE = "fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/image/fingerprint_static_256.mem"
+    parameter MEM_FILE = "fingerprint_static_256.mem"
 ) (
     input  wire       clk,
     input  wire       rst_n,

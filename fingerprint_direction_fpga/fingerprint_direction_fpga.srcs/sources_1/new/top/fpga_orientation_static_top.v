@@ -4,7 +4,7 @@
 // This top feeds a ROM-initialized fingerprint image into the same stream
 // pipeline that later accepts camera, DDR3, or host-transferred pixels.
 module fpga_orientation_static_top #(
-    parameter MEM_FILE = "fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/image/fingerprint_static_256.mem"
+    parameter MEM_FILE = "fingerprint_static_256.mem"
 ) (
     input  wire       clk,
     input  wire       rst_n,
