@@ -41,7 +41,9 @@ ref_hdmi_clock_gen u_clock_gen (
     .locked(locked)
 );
 
-fpga_orientation_top u_orientation_top (
+// Static fingerprint image path for hardware validation before camera/DDR3 input.
+// The downstream Sobel/CORDIC/statistics pipeline is the same real stream core.
+fpga_orientation_static_top u_orientation_static_top (
     .clk(pixel_clk),
     .rst_n(rst_n),
     .block_valid(block_valid),
