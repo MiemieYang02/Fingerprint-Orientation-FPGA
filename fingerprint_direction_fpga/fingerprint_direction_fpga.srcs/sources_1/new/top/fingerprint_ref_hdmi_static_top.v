@@ -19,8 +19,17 @@ wire [10:0] h_disp;
 wire [10:0] v_disp;
 wire [10:0] pixel_xpos;
 wire [10:0] pixel_ypos;
-wire [15:0] pattern_data;
+wire [15:0] display_data;
 wire data_req;
+wire block_valid;
+wire [3:0] block_x;
+wire [3:0] block_y;
+wire [2:0] block_dir;
+wire algorithm_frame_done;
+wire [3:0] read_block_x;
+wire [3:0] read_block_y;
+wire [2:0] read_block_dir;
+wire direction_frame_ready;
 
 assign rst_n = sys_rst_n & locked;
 
@@ -32,11 +41,38 @@ ref_hdmi_clock_gen u_clock_gen (
     .locked(locked)
 );
 
-ref_hdmi_static_pattern u_pattern (
+fpga_orientation_top u_orientation_top (
+    .clk(pixel_clk),
+    .rst_n(rst_n),
+    .block_valid(block_valid),
+    .block_x(block_x),
+    .block_y(block_y),
+    .block_dir(block_dir),
+    .frame_done(algorithm_frame_done)
+);
+
+direction_field_buffer u_direction_field_buffer (
+    .clk(pixel_clk),
+    .rst_n(rst_n),
+    .block_valid(block_valid),
+    .block_x(block_x),
+    .block_y(block_y),
+    .block_dir(block_dir),
+    .read_block_x(read_block_x),
+    .read_block_y(read_block_y),
+    .read_block_dir(read_block_dir),
+    .frame_ready(direction_frame_ready)
+);
+
+hdmi_direction_field_renderer u_renderer (
     .data_req(data_req),
     .pixel_xpos(pixel_xpos),
     .pixel_ypos(pixel_ypos),
-    .pixel_data(pattern_data)
+    .frame_ready(direction_frame_ready),
+    .read_block_dir(read_block_dir),
+    .read_block_x(read_block_x),
+    .read_block_y(read_block_y),
+    .pixel_data(display_data)
 );
 
 ref_hdmi_top u_hdmi_top (
@@ -55,7 +91,7 @@ ref_hdmi_top u_hdmi_top (
     .v_disp(v_disp),
     .pixel_xpos(pixel_xpos),
     .pixel_ypos(pixel_ypos),
-    .data_in(pattern_data),
+    .data_in(display_data),
     .data_req(data_req)
 );
 

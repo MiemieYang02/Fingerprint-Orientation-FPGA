@@ -33,6 +33,8 @@ set src_files [list \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new display ref_video_driver.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new display ref_hdmi_top.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new display ref_hdmi_static_pattern.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new display direction_field_buffer.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new display hdmi_direction_field_renderer.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new top fpga_orientation_top.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new top fingerprint_hdmi_static_top.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new top fingerprint_ref_hdmi_static_top.v] \
@@ -43,6 +45,8 @@ set_property top fingerprint_ref_hdmi_static_top [get_filesets sources_1]
 
 set sim_files [list \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_fpga_orientation_top.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_direction_field_buffer.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_hdmi_direction_field_renderer.v] \
 ]
 add_missing_files sim_1 $sim_files
 set_property top tb_fpga_orientation_top [get_filesets sim_1]
