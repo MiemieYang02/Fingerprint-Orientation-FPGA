@@ -67,6 +67,8 @@ direction_field_buffer u_direction_field_buffer (
 );
 
 hdmi_direction_field_renderer u_renderer (
+    .clk(pixel_clk),
+    .rst_n(rst_n),
     .data_req(data_req),
     .pixel_xpos(pixel_xpos),
     .pixel_ypos(pixel_ypos),

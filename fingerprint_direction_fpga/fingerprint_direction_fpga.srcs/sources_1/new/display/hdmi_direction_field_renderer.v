@@ -1,6 +1,12 @@
 `timescale 1ns / 1ps
 
-module hdmi_direction_field_renderer(
+module hdmi_direction_field_renderer #(
+    parameter IMAGE_W = 256,
+    parameter IMAGE_H = 256,
+    parameter MEM_FILE = "fingerprint_static_256.mem"
+) (
+    input  wire        clk,
+    input  wire        rst_n,
     input  wire        data_req,
     input  wire [10:0] pixel_xpos,
     input  wire [10:0] pixel_ypos,
@@ -18,7 +24,6 @@ localparam [10:0] FIELD_SIZE = 11'd512;
 localparam [15:0] BLACK   = 16'h0000;
 localparam [15:0] WHITE   = 16'hFFFF;
 localparam [15:0] DARK    = 16'h0124;
-localparam [15:0] FIELD_BG = 16'h39E7;
 localparam [15:0] WAIT_BG = 16'h7BEF;
 localparam [15:0] RED     = 16'hF800;
 localparam [15:0] GREEN   = 16'h07E0;
@@ -37,6 +42,9 @@ wire [8:0] field_y = pixel_ypos - FIELD_Y0;
 wire [4:0] cell_x = field_x[4:0];
 wire [4:0] cell_y = field_y[4:0];
 wire [5:0] diag_sum = {1'b0, cell_x} + {1'b0, cell_y};
+wire [7:0] image_x = field_x[8:1];
+wire [7:0] image_y = field_y[8:1];
+wire [15:0] image_addr = image_y * IMAGE_W + image_x;
 
 wire in_segment_x = (cell_x >= 5'd8) && (cell_x <= 5'd23);
 wire in_segment_y = (cell_y >= 5'd8) && (cell_y <= 5'd23);
@@ -60,30 +68,45 @@ wire direction_line =
 assign read_block_x = in_field ? field_x[8:5] : 4'd0;
 assign read_block_y = in_field ? field_y[8:5] : 4'd0;
 
-always @(*) begin
-    if (!data_req) begin
-        pixel_data = BLACK;
+(* rom_style = "block" *) reg [7:0] image_mem [0:IMAGE_W*IMAGE_H-1];
+
+initial begin
+    $readmemh(MEM_FILE, image_mem);
+end
+
+function [15:0] gray_to_rgb565;
+    input [7:0] gray;
+    begin
+        gray_to_rgb565 = {gray[7:3], gray[7:2], gray[7:3]};
+    end
+endfunction
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        pixel_data <= BLACK;
+    end else if (!data_req) begin
+        pixel_data <= BLACK;
     end else if (in_field) begin
         if (!frame_ready) begin
-            pixel_data = WAIT_BG;
+            pixel_data <= WAIT_BG;
         end else if (direction_line) begin
-            pixel_data = WHITE;
+            pixel_data <= WHITE;
         end else begin
-            pixel_data = FIELD_BG;
+            pixel_data <= gray_to_rgb565(image_mem[image_addr]);
         end
     end else if (pixel_ypos < 11'd64) begin
         case (pixel_xpos[10:7])
-            4'd0: pixel_data = WHITE;
-            4'd1: pixel_data = YELLOW;
-            4'd2: pixel_data = CYAN;
-            4'd3: pixel_data = GREEN;
-            4'd4: pixel_data = MAGENTA;
-            4'd5: pixel_data = RED;
-            4'd6: pixel_data = ORANGE;
-            default: pixel_data = BLUE;
+            4'd0: pixel_data <= WHITE;
+            4'd1: pixel_data <= YELLOW;
+            4'd2: pixel_data <= CYAN;
+            4'd3: pixel_data <= GREEN;
+            4'd4: pixel_data <= MAGENTA;
+            4'd5: pixel_data <= RED;
+            4'd6: pixel_data <= ORANGE;
+            default: pixel_data <= BLUE;
         endcase
     end else begin
-        pixel_data = DARK;
+        pixel_data <= DARK;
     end
 end
 

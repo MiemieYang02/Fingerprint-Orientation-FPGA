@@ -1,6 +1,8 @@
 `timescale 1ns/1ps
 
 module tb_hdmi_direction_field_renderer;
+    reg clk;
+    reg rst_n;
     reg data_req;
     reg [10:0] pixel_xpos;
     reg [10:0] pixel_ypos;
@@ -12,7 +14,11 @@ module tb_hdmi_direction_field_renderer;
 
     integer errors;
 
-    hdmi_direction_field_renderer dut (
+    hdmi_direction_field_renderer #(
+        .MEM_FILE("fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/image/fingerprint_static_256.mem")
+    ) dut (
+        .clk(clk),
+        .rst_n(rst_n),
         .data_req(data_req),
         .pixel_xpos(pixel_xpos),
         .pixel_ypos(pixel_ypos),
@@ -34,6 +40,7 @@ module tb_hdmi_direction_field_renderer;
             pixel_xpos = x;
             pixel_ypos = y;
             read_block_dir = dir;
+            @(posedge clk);
             #1;
             if (read_block_x !== exp_bx || read_block_y !== exp_by || pixel_data !== exp_rgb) begin
                 $display("RENDER_MISMATCH x=%0d y=%0d dir=%0d bx=%0d/%0d by=%0d/%0d rgb=%h/%h",
@@ -44,18 +51,26 @@ module tb_hdmi_direction_field_renderer;
     endtask
 
     initial begin
+        clk = 1'b0;
+        forever #5 clk = ~clk;
+    end
+
+    initial begin
         errors = 0;
+        rst_n = 1'b0;
         data_req = 1'b1;
         frame_ready = 1'b1;
         pixel_xpos = 11'd0;
         pixel_ypos = 11'd0;
         read_block_dir = 3'd0;
-        #1;
+        repeat (4) @(posedge clk);
+        rst_n = 1'b1;
+        @(posedge clk);
 
-        expect_pixel(11'd256, 11'd128, 3'd0, 4'd0, 4'd0, 16'h39E7);
+        expect_pixel(11'd256, 11'd128, 3'd0, 4'd0, 4'd0, 16'hEF5D);
         expect_pixel(11'd271, 11'd143, 3'd0, 4'd0, 4'd0, 16'hFFFF);
-        expect_pixel(11'd287, 11'd143, 3'd0, 4'd0, 4'd0, 16'h39E7);
-        expect_pixel(11'd304, 11'd192, 3'd2, 4'd1, 4'd2, 16'h39E7);
+        expect_pixel(11'd287, 11'd143, 3'd0, 4'd0, 4'd0, 16'hEF5D);
+        expect_pixel(11'd304, 11'd192, 3'd2, 4'd1, 4'd2, 16'hEF5D);
         expect_pixel(11'd335, 11'd208, 3'd2, 4'd2, 4'd2, 16'hFFFF);
 
         frame_ready = 1'b0;
