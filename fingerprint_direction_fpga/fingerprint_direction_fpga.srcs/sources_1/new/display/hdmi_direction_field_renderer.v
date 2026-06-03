@@ -13,8 +13,8 @@ module hdmi_direction_field_renderer #(
     input  wire        frame_ready,
     input  wire [2:0]  read_block_dir,
     input  wire        read_block_active,
-    output wire [3:0]  read_block_x,
-    output wire [3:0]  read_block_y,
+    output wire [4:0]  read_block_x,
+    output wire [4:0]  read_block_y,
     output reg  [15:0] pixel_data
 );
 
@@ -40,26 +40,25 @@ wire in_field = in_field_x && in_field_y;
 
 wire [8:0] field_x = pixel_xpos - FIELD_X0;
 wire [8:0] field_y = pixel_ypos - FIELD_Y0;
-wire [4:0] cell_x = field_x[4:0];
-wire [4:0] cell_y = field_y[4:0];
-wire [5:0] diag_sum = {1'b0, cell_x} + {1'b0, cell_y};
+wire [3:0] cell_x = field_x[3:0];
+wire [3:0] cell_y = field_y[3:0];
 wire [7:0] image_x = field_x[8:1];
 wire [7:0] image_y = field_y[8:1];
 wire [15:0] image_addr = image_y * IMAGE_W + image_x;
 
-wire signed [6:0] cell_sx = $signed({1'b0, cell_x}) - 7'sd16;
-wire signed [6:0] cell_sy = $signed({1'b0, cell_y}) - 7'sd16;
+wire signed [6:0] cell_sx = $signed({1'b0, cell_x}) - 7'sd8;
+wire signed [6:0] cell_sy = $signed({1'b0, cell_y}) - 7'sd8;
 wire signed [8:0] sx = {{2{cell_sx[6]}}, cell_sx};
 wire signed [8:0] sy = {{2{cell_sy[6]}}, cell_sy};
 
-wire in_segment_x = (cell_x >= 5'd6) && (cell_x <= 5'd25);
-wire in_segment_y = (cell_y >= 5'd6) && (cell_y <= 5'd25);
+wire in_segment_x = (cell_x >= 4'd3) && (cell_x <= 4'd12);
+wire in_segment_y = (cell_y >= 4'd3) && (cell_y <= 4'd12);
 wire in_segment = in_segment_x && in_segment_y;
 
 function near_center;
     input signed [8:0] delta;
     begin
-        near_center = (delta >= -9'sd2) && (delta <= 9'sd2);
+        near_center = (delta >= -9'sd1) && (delta <= 9'sd1);
     end
 endfunction
 
@@ -85,8 +84,8 @@ wire direction_line = read_block_active && (
     ((read_block_dir == 3'd6) && line_135) ||
     ((read_block_dir == 3'd7) && line_157));
 
-assign read_block_x = in_field ? field_x[8:5] : 4'd0;
-assign read_block_y = in_field ? field_y[8:5] : 4'd0;
+assign read_block_x = in_field ? field_x[8:4] : 5'd0;
+assign read_block_y = in_field ? field_y[8:4] : 5'd0;
 
 (* rom_style = "block" *) reg [7:0] image_mem [0:IMAGE_W*IMAGE_H-1];
 

@@ -23,17 +23,19 @@ wire [15:0] display_data;
 wire data_req;
 wire block_valid;
 wire block_active;
-wire [3:0] block_x;
-wire [3:0] block_y;
+wire [4:0] block_x;
+wire [4:0] block_y;
 wire [2:0] block_dir;
 wire algorithm_frame_done;
-wire [3:0] read_block_x;
-wire [3:0] read_block_y;
+wire [4:0] read_block_x;
+wire [4:0] read_block_y;
 wire [2:0] read_block_dir;
 wire read_block_active;
 wire direction_frame_ready;
 
 assign rst_n = sys_rst_n & locked;
+
+localparam MEM_FILE = "fingerprint_reality_256.mem";
 
 ref_hdmi_clock_gen u_clock_gen (
     .clk_in(sys_clk),
@@ -45,7 +47,9 @@ ref_hdmi_clock_gen u_clock_gen (
 
 // Static fingerprint image path for hardware validation before camera/DDR3 input.
 // The downstream Sobel/CORDIC/statistics pipeline is the same real stream core.
-fpga_orientation_static_top u_orientation_static_top (
+fpga_orientation_static_top #(
+    .MEM_FILE(MEM_FILE)
+) u_orientation_static_top (
     .clk(pixel_clk),
     .rst_n(rst_n),
     .block_valid(block_valid),
@@ -71,7 +75,9 @@ direction_field_buffer u_direction_field_buffer (
     .frame_ready(direction_frame_ready)
 );
 
-hdmi_direction_field_renderer u_renderer (
+hdmi_direction_field_renderer #(
+    .MEM_FILE(MEM_FILE)
+) u_renderer (
     .clk(pixel_clk),
     .rst_n(rst_n),
     .data_req(data_req),

@@ -18,11 +18,11 @@ module fpga_orientation_pipeline #(
     input  wire       pixel_line_start,
     input  wire       pixel_frame_done,
 
-    // One result per 16x16 block after Sobel, angle quantization, and statistics.
+    // One result per 8x8 block after Sobel, tensor accumulation, and CORDIC.
     output wire       block_valid,
     output wire       block_active,
-    output wire [3:0] block_x,
-    output wire [3:0] block_y,
+    output wire [4:0] block_x,
+    output wire [4:0] block_y,
     output wire [2:0] block_dir,
     output wire       frame_done
 );
@@ -44,17 +44,12 @@ module fpga_orientation_pipeline #(
     wire signed [11:0] gx;
     wire signed [11:0] gy;
 
-    wire angle_valid;
-    wire angle_vote_valid;
-    wire [7:0] angle_x;
-    wire [7:0] angle_y;
-    wire [7:0] angle_code;
-
-    wire dir_valid;
-    wire dir_vote_valid;
-    wire [7:0] dir_x;
-    wire [7:0] dir_y;
-    wire [2:0] dir_bin;
+    wire tensor_valid;
+    wire tensor_active;
+    wire [4:0] tensor_block_x;
+    wire [4:0] tensor_block_y;
+    wire signed [31:0] tensor_x;
+    wire signed [31:0] tensor_y;
 
     reg [63:0] done_pipe;
 
@@ -97,45 +92,32 @@ module fpga_orientation_pipeline #(
         .gy(gy)
     );
 
-    cordic_angle_ip_wrapper u_cordic_angle_ip_wrapper (
+    block_tensor_stat u_block_tensor_stat (
         .clk(clk),
         .rst_n(rst_n),
         .in_valid(sobel_valid),
-        .in_vote_valid(strong_gradient),
+        .vote_valid(strong_gradient),
         .in_x(sobel_x),
         .in_y(sobel_y),
         .gx(gx),
         .gy(gy),
-        .out_valid(angle_valid),
-        .out_vote_valid(angle_vote_valid),
-        .out_x(angle_x),
-        .out_y(angle_y),
-        .angle_code(angle_code)
+        .block_valid(tensor_valid),
+        .block_active(tensor_active),
+        .block_x(tensor_block_x),
+        .block_y(tensor_block_y),
+        .tensor_x(tensor_x),
+        .tensor_y(tensor_y)
     );
 
-    direction_quantizer u_direction_quantizer (
+    cordic_tensor_direction u_cordic_tensor_direction (
         .clk(clk),
         .rst_n(rst_n),
-        .in_valid(angle_valid),
-        .vote_valid(angle_vote_valid),
-        .in_x(angle_x),
-        .in_y(angle_y),
-        .angle_code(angle_code),
-        .out_valid(dir_valid),
-        .out_vote_valid(dir_vote_valid),
-        .out_x(dir_x),
-        .out_y(dir_y),
-        .dir_bin(dir_bin)
-    );
-
-    block_direction_stat u_block_direction_stat (
-        .clk(clk),
-        .rst_n(rst_n),
-        .in_valid(dir_valid),
-        .vote_valid(dir_vote_valid),
-        .in_x(dir_x),
-        .in_y(dir_y),
-        .dir_bin(dir_bin),
+        .in_valid(tensor_valid),
+        .in_active(tensor_active),
+        .in_block_x(tensor_block_x),
+        .in_block_y(tensor_block_y),
+        .tensor_x(tensor_x),
+        .tensor_y(tensor_y),
         .block_valid(block_valid),
         .block_active(block_active),
         .block_x(block_x),

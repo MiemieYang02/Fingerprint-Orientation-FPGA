@@ -17,8 +17,10 @@ set src_files [list \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image pixel_window_3x3.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new sobel sobel_core.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new cordic cordic_angle_ip_wrapper.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new cordic cordic_tensor_direction.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new direction direction_quantizer.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new direction block_direction_stat.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new direction block_tensor_stat.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new display hdmi_overlay_stub.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new display hdmi_clock_gen.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new display video_timing_640x480.v] \
@@ -47,6 +49,7 @@ add_missing_files sources_1 $src_files
 
 set mem_files [list \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image fingerprint_static_256.mem] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image fingerprint_reality_256.mem] \
 ]
 add_missing_files sources_1 $mem_files
 foreach f $mem_files {
@@ -61,12 +64,21 @@ set sim_files [list \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_fpga_orientation_pipeline.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_direction_quantizer.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_block_direction_stat_confidence.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_block_tensor_stat.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_cordic_tensor_direction.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_static_image_source.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_fpga_orientation_static_top.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_direction_field_buffer.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sim_1 new tb_hdmi_direction_field_renderer.v] \
 ]
 add_missing_files sim_1 $sim_files
+foreach f $sim_files {
+  if {[llength [get_files -quiet $f]] != 0} {
+    set_property used_in_synthesis false [get_files $f]
+    set_property used_in_implementation false [get_files $f]
+    set_property used_in_simulation true [get_files $f]
+  }
+}
 set_property top tb_fpga_orientation_top [get_filesets sim_1]
 
 set constr_files [list \

@@ -8,15 +8,15 @@ module tb_fpga_orientation_static_top;
 
     wire block_valid;
     wire block_active;
-    wire [3:0] block_x;
-    wire [3:0] block_y;
+    wire [4:0] block_x;
+    wire [4:0] block_y;
     wire [2:0] block_dir;
     wire frame_done;
 
     integer block_count;
     integer nonzero_count;
     integer active_count;
-    reg [255:0] seen_block;
+    reg [1023:0] seen_block;
     integer block_index;
 
     fpga_orientation_static_top #(
@@ -42,7 +42,7 @@ module tb_fpga_orientation_static_top;
         block_count = 0;
         nonzero_count = 0;
         active_count = 0;
-        seen_block = 256'd0;
+        seen_block = 1024'd0;
         repeat (8) @(posedge clk);
         rst_n = 1'b1;
     end
@@ -66,8 +66,8 @@ module tb_fpga_orientation_static_top;
         end
 
         if (rst_n && frame_done) begin
-            if (block_count != 256) begin
-                $display("STATIC_TOP_BLOCK_COUNT_MISMATCH count=%0d expected=256", block_count);
+            if (block_count != 1024) begin
+                $display("STATIC_TOP_BLOCK_COUNT_MISMATCH count=%0d expected=1024", block_count);
                 $finish(1);
             end
             if (nonzero_count == 0) begin
