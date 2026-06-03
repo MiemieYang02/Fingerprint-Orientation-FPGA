@@ -50,6 +50,12 @@ wire signed [6:0] cell_sx = $signed({1'b0, cell_x}) - 7'sd8;
 wire signed [6:0] cell_sy = $signed({1'b0, cell_y}) - 7'sd8;
 wire signed [8:0] sx = {{2{cell_sx[6]}}, cell_sx};
 wire signed [8:0] sy = {{2{cell_sy[6]}}, cell_sy};
+wire signed [12:0] sx_w = {{4{sx[8]}}, sx};
+wire signed [12:0] sy_w = {{4{sy[8]}}, sy};
+wire signed [12:0] sx_5 = (sx_w <<< 2) + sx_w;
+wire signed [12:0] sy_5 = (sy_w <<< 2) + sy_w;
+wire signed [12:0] sx_12 = (sx_w <<< 3) + (sx_w <<< 2);
+wire signed [12:0] sy_12 = (sy_w <<< 3) + (sy_w <<< 2);
 
 wire in_segment_x = (cell_x >= 4'd3) && (cell_x <= 4'd12);
 wire in_segment_y = (cell_y >= 4'd3) && (cell_y <= 4'd12);
@@ -62,17 +68,26 @@ function near_center;
     end
 endfunction
 
+function near_center_scaled;
+    input signed [12:0] delta;
+    begin
+        near_center_scaled = (delta >= -13'sd6) && (delta <= 13'sd6);
+    end
+endfunction
+
 // Direction bins are ridge tangent angles over 0..180 degrees:
 // 0=0deg, 1=22.5deg, 2=45deg, 3=67.5deg, 4=90deg,
 // 5=112.5deg, 6=135deg, 7=157.5deg.
 wire line_0   = in_segment_x && near_center(sy);
-wire line_22  = in_segment && near_center((sy <<< 1) - sx);
+// Use 5/12 and 12/5 slopes to approximate tan(22.5deg) and tan(67.5deg)
+// more closely than the older 1/2 and 2/1 debug-line shortcuts.
+wire line_22  = in_segment && near_center_scaled(sy_12 - sx_5);
 wire line_45  = in_segment && near_center(sy - sx);
-wire line_67  = in_segment && near_center(sy - (sx <<< 1));
+wire line_67  = in_segment && near_center_scaled(sy_5 - sx_12);
 wire line_90  = in_segment_y && near_center(sx);
-wire line_112 = in_segment && near_center(sy + (sx <<< 1));
+wire line_112 = in_segment && near_center_scaled(sy_5 + sx_12);
 wire line_135 = in_segment && near_center(sy + sx);
-wire line_157 = in_segment && near_center((sy <<< 1) + sx);
+wire line_157 = in_segment && near_center_scaled(sy_12 + sx_5);
 
 wire direction_line = read_block_active && (
     ((read_block_dir == 3'd0) && line_0)   ||

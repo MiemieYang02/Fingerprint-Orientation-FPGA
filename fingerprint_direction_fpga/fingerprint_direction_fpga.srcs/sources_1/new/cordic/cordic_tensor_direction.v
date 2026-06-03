@@ -37,6 +37,7 @@ module cordic_tensor_direction #(
     wire signed [DATA_W-1:0] tensor_y_ext = {{(DATA_W-32){tensor_y[31]}}, tensor_y};
 
     reg signed [15:0] rounded_ridge_angle;
+    reg [2:0] quantized_ridge_dir;
     integer i;
 
     function [15:0] atan_code;
@@ -64,6 +65,7 @@ module cordic_tensor_direction #(
             block_y <= 5'd0;
             block_dir <= 3'd0;
             rounded_ridge_angle <= 16'sd0;
+            quantized_ridge_dir <= 3'd0;
             for (i = 0; i <= ITER; i = i + 1) begin
                 x_pipe[i] <= {DATA_W{1'b0}};
                 y_pipe[i] <= {DATA_W{1'b0}};
@@ -124,7 +126,17 @@ module cordic_tensor_direction #(
                     block_dir <= axis_dir_pipe[ITER];
                 end else begin
                     rounded_ridge_angle = (z_pipe[ITER] >>> 1) + 16'sd128 + 16'sd16;
-                    block_dir <= rounded_ridge_angle[7:5];
+                    quantized_ridge_dir = rounded_ridge_angle[7:5];
+                    // The tensor/CORDIC math already preserves horizontal and
+                    // vertical axes. For oblique bins, the HDMI image coordinate
+                    // convention leaves the displayed segment on the Sobel
+                    // normal; rotate those non-axis bins by 90 degrees so the
+                    // visible line follows the fingerprint ridge.
+                    if ((quantized_ridge_dir == 3'd0) || (quantized_ridge_dir == 3'd4)) begin
+                        block_dir <= quantized_ridge_dir;
+                    end else begin
+                        block_dir <= quantized_ridge_dir + 3'd4;
+                    end
                 end
             end
         end

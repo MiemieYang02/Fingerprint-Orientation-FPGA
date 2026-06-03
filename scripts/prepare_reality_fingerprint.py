@@ -160,9 +160,21 @@ def smooth_tensor_field(tensor_x, tensor_y, active):
     return smooth_x, smooth_y, smooth_active
 
 
+def angle_to_bin(theta_deg):
+    theta_deg %= 180.0
+    return int(math.floor((theta_deg + 11.25) / 22.5)) & 7
+
+
+def bin_to_angle(direction):
+    return direction * 22.5
+
+
 def tensor_to_angle(tx, ty):
     normal = 0.5 * math.degrees(math.atan2(ty, tx))
-    return (normal + 90.0) % 180.0
+    direction = angle_to_bin(normal + 90.0)
+    if direction not in (0, 4):
+        direction = (direction + 4) & 7
+    return bin_to_angle(direction)
 
 
 def draw_line(rgb, width, height, cx, cy, angle_deg, length=12, color=(255, 255, 255)):

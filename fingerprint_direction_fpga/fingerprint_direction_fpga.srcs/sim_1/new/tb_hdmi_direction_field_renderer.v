@@ -54,6 +54,25 @@ module tb_hdmi_direction_field_renderer;
         end
     endtask
 
+    task expect_not_white;
+        input [10:0] x;
+        input [10:0] y;
+        input [2:0] dir;
+        begin
+            pixel_xpos = x;
+            pixel_ypos = y;
+            read_block_dir = dir;
+            read_block_active = 1'b1;
+            @(posedge clk);
+            #1;
+            if (pixel_data === 16'hFFFF) begin
+                $display("RENDER_UNEXPECTED_WHITE x=%0d y=%0d dir=%0d rgb=%h",
+                         x, y, dir, pixel_data);
+                errors = errors + 1;
+            end
+        end
+    endtask
+
     initial begin
         clk = 1'b0;
         forever #5 clk = ~clk;
@@ -80,6 +99,7 @@ module tb_hdmi_direction_field_renderer;
         expect_pixel(11'd295, 11'd170, 3'd0, 1'b1, 5'd2, 5'd2, 16'hEF5D);
         expect_pixel(11'd311, 11'd183, 3'd2, 1'b1, 5'd3, 5'd3, 16'hFFFF);
         expect_pixel(11'd311, 11'd168, 3'd6, 1'b1, 5'd3, 5'd2, 16'hFFFF);
+        expect_not_white(11'd259, 11'd133, 3'd1);
 
         frame_ready = 1'b0;
         expect_pixel(11'd263, 11'd135, 3'd0, 1'b1, 5'd0, 5'd0, 16'h7BEF);

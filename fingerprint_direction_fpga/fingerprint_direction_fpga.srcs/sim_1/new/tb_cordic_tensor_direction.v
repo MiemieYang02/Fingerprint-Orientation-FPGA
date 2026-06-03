@@ -124,9 +124,27 @@ module tb_cordic_tensor_direction;
             $finish(1);
         end
 
-        send_tensor(5'd7, 5'd8, 32'sd10000, 32'sd0, 1'b0);
+        // Oblique tensor bins need one extra 90-degree display rotation to
+        // align with the visible fingerprint ridge direction in the HDMI view.
+        send_tensor(5'd7, 5'd8, 32'sd0, -32'sd10000, 1'b1);
         wait_seen(3);
-        if (last_x !== 5'd7 || last_y !== 5'd8 || last_active !== 1'b0) begin
+        if (last_x !== 5'd7 || last_y !== 5'd8 || last_active !== 1'b1 || last_dir !== 3'd6) begin
+            $display("CORDIC_TENSOR_OBLIQUE_POSITIVE_FAIL x=%0d y=%0d active=%0d dir=%0d",
+                     last_x, last_y, last_active, last_dir);
+            $finish(1);
+        end
+
+        send_tensor(5'd9, 5'd10, 32'sd0, 32'sd10000, 1'b1);
+        wait_seen(4);
+        if (last_x !== 5'd9 || last_y !== 5'd10 || last_active !== 1'b1 || last_dir !== 3'd2) begin
+            $display("CORDIC_TENSOR_OBLIQUE_NEGATIVE_FAIL x=%0d y=%0d active=%0d dir=%0d",
+                     last_x, last_y, last_active, last_dir);
+            $finish(1);
+        end
+
+        send_tensor(5'd11, 5'd12, 32'sd10000, 32'sd0, 1'b0);
+        wait_seen(5);
+        if (last_x !== 5'd11 || last_y !== 5'd12 || last_active !== 1'b0) begin
             $display("CORDIC_TENSOR_INACTIVE_FAIL x=%0d y=%0d active=%0d",
                      last_x, last_y, last_active);
             $finish(1);
