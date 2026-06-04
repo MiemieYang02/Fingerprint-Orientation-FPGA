@@ -1,6 +1,9 @@
 `timescale 1ns / 1ps
 
-module direction_field_buffer(
+module direction_field_buffer #(
+    parameter [5:0] FRAME_READY_X = 6'd63,
+    parameter [5:0] FRAME_READY_Y = 6'd63
+) (
     input  wire       clk,
     input  wire       rst_n,
     input  wire       block_valid,
@@ -34,7 +37,7 @@ always @(posedge clk or negedge rst_n) begin
     end else if (block_valid) begin
         dir_mem[write_addr] <= block_dir;
         active_mem[write_addr] <= block_active;
-        if (block_x == 6'd63 && block_y == 6'd63) begin
+        if (block_x == FRAME_READY_X && block_y == FRAME_READY_Y) begin
             frame_ready <= 1'b1;
         end
     end

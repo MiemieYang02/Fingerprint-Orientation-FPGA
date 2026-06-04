@@ -51,8 +51,8 @@ module tb_fpga_orientation_top;
 
         if (rst_n && frame_done) begin
             $fclose(fd);
-            if (block_count != 4096) begin
-                $display("BLOCK_COUNT_MISMATCH count=%0d expected=4096", block_count);
+            if (block_count != 3844) begin
+                $display("BLOCK_COUNT_MISMATCH count=%0d expected=3844", block_count);
                 $finish(1);
             end
             if (error_count != 0) begin

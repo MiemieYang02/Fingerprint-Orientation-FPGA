@@ -31,6 +31,8 @@ DIR_BINS = 16
 DIR_STEP_DEG = 180.0 / DIR_BINS
 GRADIENT_THRESHOLD = 10
 MIN_BLOCK_VOTES = 3
+MIN_SMOOTH_NEIGHBORS = 4
+MIN_SMOOTH_STRENGTH = 512
 
 
 def png_chunk(chunk_type, data):
@@ -143,8 +145,8 @@ def smooth_tensor_field(tensor_x, tensor_y, active):
     smooth_y = [[0 for _ in range(blocks_x)] for _ in range(blocks_y)]
     smooth_active = [[False for _ in range(blocks_x)] for _ in range(blocks_y)]
 
-    for by in range(blocks_y):
-        for bx in range(blocks_x):
+    for by in range(1, blocks_y - 1):
+        for bx in range(1, blocks_x - 1):
             sx = 0
             sy = 0
             votes = 0
@@ -158,7 +160,10 @@ def smooth_tensor_field(tensor_x, tensor_y, active):
                         votes += 1
             smooth_x[by][bx] = sx
             smooth_y[by][bx] = sy
-            smooth_active[by][bx] = active[by][bx] and votes >= 3
+            smooth_active[by][bx] = (
+                votes >= MIN_SMOOTH_NEIGHBORS and
+                abs(sx) + abs(sy) >= MIN_SMOOTH_STRENGTH
+            )
     return smooth_x, smooth_y, smooth_active
 
 

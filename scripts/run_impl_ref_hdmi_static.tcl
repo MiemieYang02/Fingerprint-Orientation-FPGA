@@ -7,6 +7,7 @@ set rtl_files [list \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image pixel_window_3x3.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new sobel sobel_core.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new direction block_tensor_stat.v] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new direction tensor_field_smoother.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new cordic cordic_tensor_direction.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new top fpga_orientation_pipeline.v] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new top fpga_orientation_static_top.v] \

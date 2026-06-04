@@ -66,8 +66,8 @@ module tb_fpga_orientation_static_top;
         end
 
         if (rst_n && frame_done) begin
-            if (block_count != 4096) begin
-                $display("STATIC_TOP_BLOCK_COUNT_MISMATCH count=%0d expected=4096", block_count);
+            if (block_count != 3844) begin
+                $display("STATIC_TOP_BLOCK_COUNT_MISMATCH count=%0d expected=3844", block_count);
                 $finish(1);
             end
             if (nonzero_count == 0) begin

@@ -60,7 +60,10 @@ fpga_orientation_static_top #(
     .frame_done(algorithm_frame_done)
 );
 
-direction_field_buffer u_direction_field_buffer (
+direction_field_buffer #(
+    .FRAME_READY_X(6'd62),
+    .FRAME_READY_Y(6'd62)
+) u_direction_field_buffer (
     .clk(pixel_clk),
     .rst_n(rst_n),
     .block_valid(block_valid),

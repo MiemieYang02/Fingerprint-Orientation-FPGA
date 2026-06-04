@@ -18,6 +18,9 @@ DIR_BINS = 16
 DIR_STEP_DEG = 180.0 / DIR_BINS
 GRID_W = IMAGE_W // BLOCK
 GRID_H = IMAGE_H // BLOCK
+GRADIENT_THRESHOLD = 10
+MIN_SMOOTH_NEIGHBORS = 4
+MIN_SMOOTH_STRENGTH = 512
 
 
 def png_chunk(chunk_type, data):
@@ -76,7 +79,7 @@ def bin_to_angle(direction):
 
 
 def current_pixel_mode_map(gray, rotate_to_tangent):
-    bins = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
+    bins = [[None for _ in range(GRID_W)] for _ in range(GRID_H)]
     for by in range(GRID_H):
         for bx in range(GRID_W):
             counts = [0] * DIR_BINS
@@ -94,18 +97,45 @@ def current_pixel_mode_map(gray, rotate_to_tangent):
 
 
 def structure_tensor_map(gray):
+    tensor_x = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
+    tensor_y = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
+    active = [[False for _ in range(GRID_W)] for _ in range(GRID_H)]
     bins = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
     for by in range(GRID_H):
         for bx in range(GRID_W):
             v_x = 0
             v_y = 0
+            votes = 0
             for y in range(max(1, by * BLOCK), min(IMAGE_H - 1, (by + 1) * BLOCK)):
                 for x in range(max(1, bx * BLOCK), min(IMAGE_W - 1, (bx + 1) * BLOCK)):
                     gx, gy = sobel(gray, x, y)
+                    if abs(gx) + abs(gy) < GRADIENT_THRESHOLD:
+                        continue
                     v_x += gx * gx - gy * gy
                     v_y += 2 * gx * gy
-            normal_theta = 0.5 * math.degrees(math.atan2(v_y, v_x))
-            bins[by][bx] = angle_to_bin(normal_theta + 90.0)
+                    votes += 1
+            tensor_x[by][bx] = v_x
+            tensor_y[by][bx] = v_y
+            active[by][bx] = votes >= 3
+
+    for by in range(1, GRID_H - 1):
+        for bx in range(1, GRID_W - 1):
+            sx = 0
+            sy = 0
+            votes = 0
+            for oy in (-1, 0, 1):
+                for ox in (-1, 0, 1):
+                    yy = by + oy
+                    xx = bx + ox
+                    if active[yy][xx]:
+                        sx += tensor_x[yy][xx]
+                        sy += tensor_y[yy][xx]
+                        votes += 1
+            if votes >= MIN_SMOOTH_NEIGHBORS and abs(sx) + abs(sy) >= MIN_SMOOTH_STRENGTH:
+                normal_theta = 0.5 * math.degrees(math.atan2(sy, sx))
+                bins[by][bx] = angle_to_bin(normal_theta + 90.0)
+            else:
+                bins[by][bx] = None
     return bins
 
 
@@ -160,6 +190,8 @@ def render_overlay(gray, bins, path, repeat=1):
         for bx in range(GRID_W):
             base_x = (bx * BLOCK + BLOCK / 2) * SCALE
             base_y = (by * BLOCK + BLOCK / 2) * SCALE
+            if bins[by][bx] is None:
+                continue
             for ox, oy in offsets:
                 draw_line(rgb, width, height, base_x + ox * SCALE, base_y + oy * SCALE, bin_to_angle(bins[by][bx]))
     write_png(rgb, width, height, path)
