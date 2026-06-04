@@ -7,15 +7,15 @@ module direction_field_buffer(
     input  wire       block_active,
     input  wire [4:0] block_x,
     input  wire [4:0] block_y,
-    input  wire [2:0] block_dir,
+    input  wire [3:0] block_dir,
     input  wire [4:0] read_block_x,
     input  wire [4:0] read_block_y,
-    output wire [2:0] read_block_dir,
+    output wire [3:0] read_block_dir,
     output wire       read_block_active,
     output reg        frame_ready
 );
 
-reg [2:0] dir_mem [0:1023];
+reg [3:0] dir_mem [0:1023];
 reg       active_mem [0:1023];
 wire [9:0] write_addr = {block_y, block_x};
 wire [9:0] read_addr = {read_block_y, read_block_x};
@@ -28,7 +28,7 @@ always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         frame_ready <= 1'b0;
         for (i = 0; i < 1024; i = i + 1) begin
-            dir_mem[i] <= 3'd0;
+            dir_mem[i] <= 4'd0;
             active_mem[i] <= 1'b0;
         end
     end else if (block_valid) begin

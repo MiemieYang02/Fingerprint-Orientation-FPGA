@@ -27,6 +27,8 @@ IMAGE_W = 256
 IMAGE_H = 256
 BLOCK = 8
 SCALE = 2
+DIR_BINS = 16
+DIR_STEP_DEG = 180.0 / DIR_BINS
 GRADIENT_THRESHOLD = 10
 MIN_BLOCK_VOTES = 8
 
@@ -162,18 +164,18 @@ def smooth_tensor_field(tensor_x, tensor_y, active):
 
 def angle_to_bin(theta_deg):
     theta_deg %= 180.0
-    return int(math.floor((theta_deg + 11.25) / 22.5)) & 7
+    return int(math.floor((theta_deg + DIR_STEP_DEG / 2.0) / DIR_STEP_DEG)) & (DIR_BINS - 1)
 
 
 def bin_to_angle(direction):
-    return direction * 22.5
+    return direction * DIR_STEP_DEG
 
 
 def tensor_to_angle(tx, ty):
     normal = 0.5 * math.degrees(math.atan2(ty, tx))
     direction = angle_to_bin(normal + 90.0)
-    if direction not in (0, 4):
-        direction = (direction + 4) & 7
+    if direction not in (0, 8):
+        direction = (direction + 8) & (DIR_BINS - 1)
     return bin_to_angle(direction)
 
 

@@ -14,13 +14,13 @@ module tb_cordic_tensor_direction;
     wire block_active;
     wire [4:0] block_x;
     wire [4:0] block_y;
-    wire [2:0] block_dir;
+    wire [3:0] block_dir;
 
     integer seen_count;
     reg last_active;
     reg [4:0] last_x;
     reg [4:0] last_y;
-    reg [2:0] last_dir;
+    reg [3:0] last_dir;
     reg prev_block_valid;
 
     cordic_tensor_direction dut (
@@ -109,7 +109,7 @@ module tb_cordic_tensor_direction;
         // Vertical Sobel normal means the fingerprint ridge itself is horizontal.
         send_tensor(5'd3, 5'd4, -32'sd10000, 32'sd0, 1'b1);
         wait_seen(1);
-        if (last_x !== 5'd3 || last_y !== 5'd4 || last_active !== 1'b1 || last_dir !== 3'd0) begin
+        if (last_x !== 5'd3 || last_y !== 5'd4 || last_active !== 1'b1 || last_dir !== 4'd0) begin
             $display("CORDIC_TENSOR_HORIZONTAL_RIDGE_FAIL x=%0d y=%0d active=%0d dir=%0d",
                      last_x, last_y, last_active, last_dir);
             $finish(1);
@@ -118,7 +118,7 @@ module tb_cordic_tensor_direction;
         // Horizontal Sobel normal means the fingerprint ridge itself is vertical.
         send_tensor(5'd5, 5'd6, 32'sd10000, 32'sd0, 1'b1);
         wait_seen(2);
-        if (last_x !== 5'd5 || last_y !== 5'd6 || last_active !== 1'b1 || last_dir !== 3'd4) begin
+        if (last_x !== 5'd5 || last_y !== 5'd6 || last_active !== 1'b1 || last_dir !== 4'd8) begin
             $display("CORDIC_TENSOR_VERTICAL_RIDGE_FAIL x=%0d y=%0d active=%0d dir=%0d",
                      last_x, last_y, last_active, last_dir);
             $finish(1);
@@ -128,7 +128,7 @@ module tb_cordic_tensor_direction;
         // align with the visible fingerprint ridge direction in the HDMI view.
         send_tensor(5'd7, 5'd8, 32'sd0, -32'sd10000, 1'b1);
         wait_seen(3);
-        if (last_x !== 5'd7 || last_y !== 5'd8 || last_active !== 1'b1 || last_dir !== 3'd6) begin
+        if (last_x !== 5'd7 || last_y !== 5'd8 || last_active !== 1'b1 || last_dir !== 4'd12) begin
             $display("CORDIC_TENSOR_OBLIQUE_POSITIVE_FAIL x=%0d y=%0d active=%0d dir=%0d",
                      last_x, last_y, last_active, last_dir);
             $finish(1);
@@ -136,7 +136,7 @@ module tb_cordic_tensor_direction;
 
         send_tensor(5'd9, 5'd10, 32'sd0, 32'sd10000, 1'b1);
         wait_seen(4);
-        if (last_x !== 5'd9 || last_y !== 5'd10 || last_active !== 1'b1 || last_dir !== 3'd2) begin
+        if (last_x !== 5'd9 || last_y !== 5'd10 || last_active !== 1'b1 || last_dir !== 4'd4) begin
             $display("CORDIC_TENSOR_OBLIQUE_NEGATIVE_FAIL x=%0d y=%0d active=%0d dir=%0d",
                      last_x, last_y, last_active, last_dir);
             $finish(1);

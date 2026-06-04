@@ -23,7 +23,7 @@ module fpga_orientation_pipeline #(
     output wire       block_active,
     output wire [4:0] block_x,
     output wire [4:0] block_y,
-    output wire [2:0] block_dir,
+    output wire [3:0] block_dir,
     output wire       frame_done
 );
     wire win_valid;

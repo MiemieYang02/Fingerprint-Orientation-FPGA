@@ -25,11 +25,11 @@ wire block_valid;
 wire block_active;
 wire [4:0] block_x;
 wire [4:0] block_y;
-wire [2:0] block_dir;
+wire [3:0] block_dir;
 wire algorithm_frame_done;
 wire [4:0] read_block_x;
 wire [4:0] read_block_y;
-wire [2:0] read_block_dir;
+wire [3:0] read_block_dir;
 wire read_block_active;
 wire direction_frame_ready;
 

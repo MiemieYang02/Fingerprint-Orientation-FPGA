@@ -11,7 +11,7 @@ module hdmi_direction_field_renderer #(
     input  wire [10:0] pixel_xpos,
     input  wire [10:0] pixel_ypos,
     input  wire        frame_ready,
-    input  wire [2:0]  read_block_dir,
+    input  wire [3:0]  read_block_dir,
     input  wire        read_block_active,
     output wire [4:0]  read_block_x,
     output wire [4:0]  read_block_y,
@@ -52,6 +52,10 @@ wire signed [8:0] sx = {{2{cell_sx[6]}}, cell_sx};
 wire signed [8:0] sy = {{2{cell_sy[6]}}, cell_sy};
 wire signed [12:0] sx_w = {{4{sx[8]}}, sx};
 wire signed [12:0] sy_w = {{4{sy[8]}}, sy};
+wire signed [12:0] sx_2 = sx_w <<< 1;
+wire signed [12:0] sy_2 = sy_w <<< 1;
+wire signed [12:0] sx_3 = (sx_w <<< 1) + sx_w;
+wire signed [12:0] sy_3 = (sy_w <<< 1) + sy_w;
 wire signed [12:0] sx_5 = (sx_w <<< 2) + sx_w;
 wire signed [12:0] sy_5 = (sy_w <<< 2) + sy_w;
 wire signed [12:0] sx_12 = (sx_w <<< 3) + (sx_w <<< 2);
@@ -75,29 +79,56 @@ function near_center_scaled;
     end
 endfunction
 
-// Direction bins are ridge tangent angles over 0..180 degrees:
-// 0=0deg, 1=22.5deg, 2=45deg, 3=67.5deg, 4=90deg,
-// 5=112.5deg, 6=135deg, 7=157.5deg.
+function near_center_scaled_mid;
+    input signed [12:0] delta;
+    begin
+        near_center_scaled_mid = (delta >= -13'sd3) && (delta <= 13'sd3);
+    end
+endfunction
+
+function near_center_scaled_tight;
+    input signed [12:0] delta;
+    begin
+        near_center_scaled_tight = (delta >= -13'sd2) && (delta <= 13'sd2);
+    end
+endfunction
+
+// Direction bins are ridge tangent angles over 0..180 degrees in 11.25-degree
+// steps. Integer slopes keep the renderer small enough for the HDMI pixel path.
 wire line_0   = in_segment_x && near_center(sy);
-// Use 5/12 and 12/5 slopes to approximate tan(22.5deg) and tan(67.5deg)
-// more closely than the older 1/2 and 2/1 debug-line shortcuts.
+wire line_11  = in_segment && near_center_scaled_mid(sy_5 - sx_w);
 wire line_22  = in_segment && near_center_scaled(sy_12 - sx_5);
+wire line_34  = in_segment && near_center_scaled_tight(sy_3 - sx_2);
 wire line_45  = in_segment && near_center(sy - sx);
+wire line_56  = in_segment && near_center_scaled_tight(sy_2 - sx_3);
 wire line_67  = in_segment && near_center_scaled(sy_5 - sx_12);
+wire line_79  = in_segment && near_center_scaled_mid(sy_w - sx_5);
 wire line_90  = in_segment_y && near_center(sx);
+wire line_101 = in_segment && near_center_scaled_mid(sy_w + sx_5);
 wire line_112 = in_segment && near_center_scaled(sy_5 + sx_12);
+wire line_124 = in_segment && near_center_scaled_tight(sy_2 + sx_3);
 wire line_135 = in_segment && near_center(sy + sx);
+wire line_146 = in_segment && near_center_scaled_tight(sy_3 + sx_2);
 wire line_157 = in_segment && near_center_scaled(sy_12 + sx_5);
+wire line_169 = in_segment && near_center_scaled_mid(sy_5 + sx_w);
 
 wire direction_line = read_block_active && (
-    ((read_block_dir == 3'd0) && line_0)   ||
-    ((read_block_dir == 3'd1) && line_22)  ||
-    ((read_block_dir == 3'd2) && line_45)  ||
-    ((read_block_dir == 3'd3) && line_67)  ||
-    ((read_block_dir == 3'd4) && line_90)  ||
-    ((read_block_dir == 3'd5) && line_112) ||
-    ((read_block_dir == 3'd6) && line_135) ||
-    ((read_block_dir == 3'd7) && line_157));
+    ((read_block_dir == 4'd0)  && line_0)   ||
+    ((read_block_dir == 4'd1)  && line_11)  ||
+    ((read_block_dir == 4'd2)  && line_22)  ||
+    ((read_block_dir == 4'd3)  && line_34)  ||
+    ((read_block_dir == 4'd4)  && line_45)  ||
+    ((read_block_dir == 4'd5)  && line_56)  ||
+    ((read_block_dir == 4'd6)  && line_67)  ||
+    ((read_block_dir == 4'd7)  && line_79)  ||
+    ((read_block_dir == 4'd8)  && line_90)  ||
+    ((read_block_dir == 4'd9)  && line_101) ||
+    ((read_block_dir == 4'd10) && line_112) ||
+    ((read_block_dir == 4'd11) && line_124) ||
+    ((read_block_dir == 4'd12) && line_135) ||
+    ((read_block_dir == 4'd13) && line_146) ||
+    ((read_block_dir == 4'd14) && line_157) ||
+    ((read_block_dir == 4'd15) && line_169));
 
 assign read_block_x = in_field ? field_x[8:4] : 5'd0;
 assign read_block_y = in_field ? field_y[8:4] : 5'd0;

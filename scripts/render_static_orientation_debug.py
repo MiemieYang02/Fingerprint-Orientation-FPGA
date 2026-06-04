@@ -14,6 +14,8 @@ IMAGE_W = 256
 IMAGE_H = 256
 BLOCK = 16
 SCALE = 2
+DIR_BINS = 16
+DIR_STEP_DEG = 180.0 / DIR_BINS
 
 
 def png_chunk(chunk_type, data):
@@ -64,18 +66,18 @@ def sobel(gray, x, y):
 
 def angle_to_bin(theta_deg):
     theta_deg %= 180.0
-    return int(math.floor((theta_deg + 11.25) / 22.5)) & 7
+    return int(math.floor((theta_deg + DIR_STEP_DEG / 2.0) / DIR_STEP_DEG)) & (DIR_BINS - 1)
 
 
 def bin_to_angle(direction):
-    return direction * 22.5
+    return direction * DIR_STEP_DEG
 
 
 def current_pixel_mode_map(gray, rotate_to_tangent):
     bins = [[0 for _ in range(16)] for _ in range(16)]
     for by in range(16):
         for bx in range(16):
-            counts = [0] * 8
+            counts = [0] * DIR_BINS
             for y in range(max(1, by * BLOCK), min(IMAGE_H - 1, (by + 1) * BLOCK)):
                 for x in range(max(1, bx * BLOCK), min(IMAGE_W - 1, (bx + 1) * BLOCK)):
                     gx, gy = sobel(gray, x, y)
@@ -85,7 +87,7 @@ def current_pixel_mode_map(gray, rotate_to_tangent):
                     if rotate_to_tangent:
                         theta += 90.0
                     counts[angle_to_bin(theta)] += 1
-            bins[by][bx] = max(range(8), key=lambda i: counts[i])
+            bins[by][bx] = max(range(DIR_BINS), key=lambda i: counts[i])
     return bins
 
 
