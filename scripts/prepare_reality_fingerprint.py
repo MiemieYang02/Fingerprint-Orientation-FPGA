@@ -25,12 +25,12 @@ OVERLAY_PATH = OUT_DIR / "fingerprint_reality_orientation_overlay.png"
 
 IMAGE_W = 256
 IMAGE_H = 256
-BLOCK = 8
+BLOCK = 4
 SCALE = 2
 DIR_BINS = 16
 DIR_STEP_DEG = 180.0 / DIR_BINS
 GRADIENT_THRESHOLD = 10
-MIN_BLOCK_VOTES = 8
+MIN_BLOCK_VOTES = 3
 
 
 def png_chunk(chunk_type, data):
@@ -179,18 +179,16 @@ def tensor_to_angle(tx, ty):
     return bin_to_angle(direction)
 
 
-def draw_line(rgb, width, height, cx, cy, angle_deg, length=12, color=(255, 255, 255)):
+def draw_line(rgb, width, height, cx, cy, angle_deg, length=7, color=(255, 255, 255)):
     rad = math.radians(angle_deg)
     dx = math.cos(rad)
     dy = math.sin(rad)
     for step in range(-length // 2, length // 2 + 1):
         x = int(round(cx + dx * step))
         y = int(round(cy + dy * step))
-        for yy in range(y - 1, y + 2):
-            for xx in range(x - 1, x + 2):
-                if 0 <= xx < width and 0 <= yy < height:
-                    idx = (yy * width + xx) * 3
-                    rgb[idx:idx + 3] = bytes(color)
+        if 0 <= x < width and 0 <= y < height:
+            idx = (y * width + x) * 3
+            rgb[idx:idx + 3] = bytes(color)
 
 
 def render_overlay(gray, tensor_x, tensor_y, active, path):

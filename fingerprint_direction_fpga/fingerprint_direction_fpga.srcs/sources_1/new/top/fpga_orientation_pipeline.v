@@ -18,11 +18,11 @@ module fpga_orientation_pipeline #(
     input  wire       pixel_line_start,
     input  wire       pixel_frame_done,
 
-    // One result per 8x8 block after Sobel, tensor accumulation, and CORDIC.
+    // One result per 4x4 block after Sobel, tensor accumulation, and CORDIC.
     output wire       block_valid,
     output wire       block_active,
-    output wire [4:0] block_x,
-    output wire [4:0] block_y,
+    output wire [5:0] block_x,
+    output wire [5:0] block_y,
     output wire [3:0] block_dir,
     output wire       frame_done
 );
@@ -46,8 +46,8 @@ module fpga_orientation_pipeline #(
 
     wire tensor_valid;
     wire tensor_active;
-    wire [4:0] tensor_block_x;
-    wire [4:0] tensor_block_y;
+    wire [5:0] tensor_block_x;
+    wire [5:0] tensor_block_y;
     wire signed [31:0] tensor_x;
     wire signed [31:0] tensor_y;
 

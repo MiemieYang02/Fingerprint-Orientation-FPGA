@@ -12,10 +12,12 @@ MEM_PATH = ROOT / "fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/so
 OUT_DIR = ROOT / "fingerprint_direction_fpga/previews"
 IMAGE_W = 256
 IMAGE_H = 256
-BLOCK = 16
+BLOCK = 4
 SCALE = 2
 DIR_BINS = 16
 DIR_STEP_DEG = 180.0 / DIR_BINS
+GRID_W = IMAGE_W // BLOCK
+GRID_H = IMAGE_H // BLOCK
 
 
 def png_chunk(chunk_type, data):
@@ -74,9 +76,9 @@ def bin_to_angle(direction):
 
 
 def current_pixel_mode_map(gray, rotate_to_tangent):
-    bins = [[0 for _ in range(16)] for _ in range(16)]
-    for by in range(16):
-        for bx in range(16):
+    bins = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
+    for by in range(GRID_H):
+        for bx in range(GRID_W):
             counts = [0] * DIR_BINS
             for y in range(max(1, by * BLOCK), min(IMAGE_H - 1, (by + 1) * BLOCK)):
                 for x in range(max(1, bx * BLOCK), min(IMAGE_W - 1, (bx + 1) * BLOCK)):
@@ -92,9 +94,9 @@ def current_pixel_mode_map(gray, rotate_to_tangent):
 
 
 def structure_tensor_map(gray):
-    bins = [[0 for _ in range(16)] for _ in range(16)]
-    for by in range(16):
-        for bx in range(16):
+    bins = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
+    for by in range(GRID_H):
+        for bx in range(GRID_W):
             v_x = 0
             v_y = 0
             for y in range(max(1, by * BLOCK), min(IMAGE_H - 1, (by + 1) * BLOCK)):
@@ -108,11 +110,11 @@ def structure_tensor_map(gray):
 
 
 def synthetic_phase_tangent_map():
-    bins = [[0 for _ in range(16)] for _ in range(16)]
+    bins = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
     cx = (IMAGE_W - 1) / 2.0
     cy = (IMAGE_H - 1) / 2.0
-    for by in range(16):
-        for bx in range(16):
+    for by in range(GRID_H):
+        for bx in range(GRID_W):
             # Use the center of the local block. This is only a diagnostic
             # reference for the generated static image, not a hardware input.
             x = bx * BLOCK + BLOCK / 2.0
@@ -131,18 +133,16 @@ def synthetic_phase_tangent_map():
     return bins
 
 
-def draw_line(rgb, width, height, cx, cy, angle_deg, length=22, color=(255, 255, 255)):
+def draw_line(rgb, width, height, cx, cy, angle_deg, length=7, color=(255, 255, 255)):
     rad = math.radians(angle_deg)
     dx = math.cos(rad)
     dy = math.sin(rad)
     for step in range(-length // 2, length // 2 + 1):
         x = int(round(cx + dx * step))
         y = int(round(cy + dy * step))
-        for yy in range(y - 1, y + 2):
-            for xx in range(x - 1, x + 2):
-                if 0 <= xx < width and 0 <= yy < height:
-                    idx = (yy * width + xx) * 3
-                    rgb[idx:idx + 3] = bytes(color)
+        if 0 <= x < width and 0 <= y < height:
+            idx = (y * width + x) * 3
+            rgb[idx:idx + 3] = bytes(color)
 
 
 def render_overlay(gray, bins, path, repeat=1):
@@ -155,9 +155,9 @@ def render_overlay(gray, bins, path, repeat=1):
             idx = (y * width + x) * 3
             rgb[idx:idx + 3] = bytes((v, v, v))
 
-    offsets = [(0, 0)] if repeat == 1 else [(-4, -4), (4, -4), (-4, 4), (4, 4)]
-    for by in range(16):
-        for bx in range(16):
+    offsets = [(0, 0)] if repeat == 1 else [(-1, -1), (1, -1), (-1, 1), (1, 1)]
+    for by in range(GRID_H):
+        for bx in range(GRID_W):
             base_x = (bx * BLOCK + BLOCK / 2) * SCALE
             base_y = (by * BLOCK + BLOCK / 2) * SCALE
             for ox, oy in offsets:

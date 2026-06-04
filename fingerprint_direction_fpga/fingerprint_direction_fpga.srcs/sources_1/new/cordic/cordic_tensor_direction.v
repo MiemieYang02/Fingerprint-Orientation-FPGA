@@ -10,14 +10,14 @@ module cordic_tensor_direction #(
     input  wire               rst_n,
     input  wire               in_valid,
     input  wire               in_active,
-    input  wire [4:0]         in_block_x,
-    input  wire [4:0]         in_block_y,
+    input  wire [5:0]         in_block_x,
+    input  wire [5:0]         in_block_y,
     input  wire signed [31:0] tensor_x,
     input  wire signed [31:0] tensor_y,
     output reg                block_valid,
     output reg                block_active,
-    output reg [4:0]          block_x,
-    output reg [4:0]          block_y,
+    output reg [5:0]          block_x,
+    output reg [5:0]          block_y,
     output reg [3:0]          block_dir
 );
     localparam integer DATA_W = 40;
@@ -26,8 +26,8 @@ module cordic_tensor_direction #(
     reg signed [DATA_W-1:0] x_pipe [0:ITER];
     reg signed [DATA_W-1:0] y_pipe [0:ITER];
     reg signed [15:0] z_pipe [0:ITER];
-    reg [4:0] x_coord_pipe [0:ITER];
-    reg [4:0] y_coord_pipe [0:ITER];
+    reg [5:0] x_coord_pipe [0:ITER];
+    reg [5:0] y_coord_pipe [0:ITER];
     reg valid_pipe [0:ITER];
     reg active_pipe [0:ITER];
     reg axis_pipe [0:ITER];
@@ -61,8 +61,8 @@ module cordic_tensor_direction #(
         if (!rst_n) begin
             block_valid <= 1'b0;
             block_active <= 1'b0;
-            block_x <= 5'd0;
-            block_y <= 5'd0;
+            block_x <= 6'd0;
+            block_y <= 6'd0;
             block_dir <= 4'd0;
             rounded_ridge_angle <= 16'sd0;
             quantized_ridge_dir <= 4'd0;
@@ -70,8 +70,8 @@ module cordic_tensor_direction #(
                 x_pipe[i] <= {DATA_W{1'b0}};
                 y_pipe[i] <= {DATA_W{1'b0}};
                 z_pipe[i] <= 16'sd0;
-                x_coord_pipe[i] <= 5'd0;
-                y_coord_pipe[i] <= 5'd0;
+                x_coord_pipe[i] <= 6'd0;
+                y_coord_pipe[i] <= 6'd0;
                 valid_pipe[i] <= 1'b0;
                 active_pipe[i] <= 1'b0;
                 axis_pipe[i] <= 1'b0;

@@ -14,8 +14,8 @@ module tb_fpga_orientation_pipeline;
 
     wire block_valid;
     wire block_active;
-    wire [4:0] block_x;
-    wire [4:0] block_y;
+    wire [5:0] block_x;
+    wire [5:0] block_y;
     wire [3:0] block_dir;
     wire frame_done;
 
@@ -75,8 +75,8 @@ module tb_fpga_orientation_pipeline;
         end
 
         if (rst_n && frame_done) begin
-            if (block_count != 1024) begin
-                $display("PIPELINE_BLOCK_COUNT_MISMATCH count=%0d expected=1024", block_count);
+            if (block_count != 4096) begin
+                $display("PIPELINE_BLOCK_COUNT_MISMATCH count=%0d expected=4096", block_count);
                 $finish(1);
             end
             if (error_count != 0) begin

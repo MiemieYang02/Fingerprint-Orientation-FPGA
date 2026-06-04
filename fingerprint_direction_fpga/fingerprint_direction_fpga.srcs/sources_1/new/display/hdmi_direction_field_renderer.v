@@ -13,8 +13,8 @@ module hdmi_direction_field_renderer #(
     input  wire        frame_ready,
     input  wire [3:0]  read_block_dir,
     input  wire        read_block_active,
-    output wire [4:0]  read_block_x,
-    output wire [4:0]  read_block_y,
+    output wire [5:0]  read_block_x,
+    output wire [5:0]  read_block_y,
     output reg  [15:0] pixel_data
 );
 
@@ -40,16 +40,16 @@ wire in_field = in_field_x && in_field_y;
 
 wire [8:0] field_x = pixel_xpos - FIELD_X0;
 wire [8:0] field_y = pixel_ypos - FIELD_Y0;
-wire [3:0] cell_x = field_x[3:0];
-wire [3:0] cell_y = field_y[3:0];
+wire [2:0] cell_x = field_x[2:0];
+wire [2:0] cell_y = field_y[2:0];
 wire [7:0] image_x = field_x[8:1];
 wire [7:0] image_y = field_y[8:1];
 wire [15:0] image_addr = image_y * IMAGE_W + image_x;
 
-wire signed [6:0] cell_sx = $signed({1'b0, cell_x}) - 7'sd8;
-wire signed [6:0] cell_sy = $signed({1'b0, cell_y}) - 7'sd8;
-wire signed [8:0] sx = {{2{cell_sx[6]}}, cell_sx};
-wire signed [8:0] sy = {{2{cell_sy[6]}}, cell_sy};
+wire signed [5:0] cell_sx = $signed({1'b0, cell_x}) - 6'sd4;
+wire signed [5:0] cell_sy = $signed({1'b0, cell_y}) - 6'sd4;
+wire signed [8:0] sx = {{3{cell_sx[5]}}, cell_sx};
+wire signed [8:0] sy = {{3{cell_sy[5]}}, cell_sy};
 wire signed [12:0] sx_w = {{4{sx[8]}}, sx};
 wire signed [12:0] sy_w = {{4{sy[8]}}, sy};
 wire signed [12:0] sx_2 = sx_w <<< 1;
@@ -61,8 +61,8 @@ wire signed [12:0] sy_5 = (sy_w <<< 2) + sy_w;
 wire signed [12:0] sx_12 = (sx_w <<< 3) + (sx_w <<< 2);
 wire signed [12:0] sy_12 = (sy_w <<< 3) + (sy_w <<< 2);
 
-wire in_segment_x = (cell_x >= 4'd3) && (cell_x <= 4'd12);
-wire in_segment_y = (cell_y >= 4'd3) && (cell_y <= 4'd12);
+wire in_segment_x = (cell_x >= 3'd1) && (cell_x <= 3'd6);
+wire in_segment_y = (cell_y >= 3'd1) && (cell_y <= 3'd6);
 wire in_segment = in_segment_x && in_segment_y;
 
 function near_center;
@@ -75,21 +75,21 @@ endfunction
 function near_center_scaled;
     input signed [12:0] delta;
     begin
-        near_center_scaled = (delta >= -13'sd6) && (delta <= 13'sd6);
+        near_center_scaled = (delta >= -13'sd3) && (delta <= 13'sd3);
     end
 endfunction
 
 function near_center_scaled_mid;
     input signed [12:0] delta;
     begin
-        near_center_scaled_mid = (delta >= -13'sd3) && (delta <= 13'sd3);
+        near_center_scaled_mid = (delta >= -13'sd2) && (delta <= 13'sd2);
     end
 endfunction
 
 function near_center_scaled_tight;
     input signed [12:0] delta;
     begin
-        near_center_scaled_tight = (delta >= -13'sd2) && (delta <= 13'sd2);
+        near_center_scaled_tight = (delta >= -13'sd1) && (delta <= 13'sd1);
     end
 endfunction
 
@@ -130,8 +130,8 @@ wire direction_line = read_block_active && (
     ((read_block_dir == 4'd14) && line_157) ||
     ((read_block_dir == 4'd15) && line_169));
 
-assign read_block_x = in_field ? field_x[8:4] : 5'd0;
-assign read_block_y = in_field ? field_y[8:4] : 5'd0;
+assign read_block_x = in_field ? field_x[8:3] : 6'd0;
+assign read_block_y = in_field ? field_y[8:3] : 6'd0;
 
 (* rom_style = "block" *) reg [7:0] image_mem [0:IMAGE_W*IMAGE_H-1];
 

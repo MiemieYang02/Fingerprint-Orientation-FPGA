@@ -5,11 +5,11 @@ module tb_direction_field_buffer;
     reg rst_n;
     reg block_valid;
     reg block_active;
-    reg [4:0] block_x;
-    reg [4:0] block_y;
+    reg [5:0] block_x;
+    reg [5:0] block_y;
     reg [3:0] block_dir;
-    reg [4:0] read_block_x;
-    reg [4:0] read_block_y;
+    reg [5:0] read_block_x;
+    reg [5:0] read_block_y;
     wire [3:0] read_block_dir;
     wire read_block_active;
     wire frame_ready;
@@ -37,8 +37,8 @@ module tb_direction_field_buffer;
     end
 
     task write_block;
-        input [4:0] x;
-        input [4:0] y;
+        input [5:0] x;
+        input [5:0] y;
         input [3:0] dir;
         input       active;
         begin
@@ -58,17 +58,17 @@ module tb_direction_field_buffer;
         rst_n = 1'b0;
         block_valid = 1'b0;
         block_active = 1'b0;
-        block_x = 5'd0;
-        block_y = 5'd0;
+        block_x = 6'd0;
+        block_y = 6'd0;
         block_dir = 4'd0;
-        read_block_x = 5'd0;
-        read_block_y = 5'd0;
+        read_block_x = 6'd0;
+        read_block_y = 6'd0;
         repeat (4) @(posedge clk);
         rst_n = 1'b1;
 
-        write_block(5'd3, 5'd4, 4'd13, 1'b1);
-        read_block_x = 5'd3;
-        read_block_y = 5'd4;
+        write_block(6'd3, 6'd4, 4'd13, 1'b1);
+        read_block_x = 6'd3;
+        read_block_y = 6'd4;
         #1;
         if (read_block_dir !== 4'd13 || read_block_active !== 1'b1 || frame_ready !== 1'b0) begin
             $display("BUFFER_SINGLE_WRITE_FAIL dir=%0d active=%0d ready=%0d",
@@ -76,9 +76,9 @@ module tb_direction_field_buffer;
             errors = errors + 1;
         end
 
-        write_block(5'd31, 5'd31, 4'd10, 1'b0);
-        read_block_x = 5'd31;
-        read_block_y = 5'd31;
+        write_block(6'd63, 6'd63, 4'd10, 1'b0);
+        read_block_x = 6'd63;
+        read_block_y = 6'd63;
         #1;
         if (read_block_dir !== 4'd10 || read_block_active !== 1'b0 || frame_ready !== 1'b1) begin
             $display("BUFFER_FRAME_READY_FAIL dir=%0d active=%0d ready=%0d",
