@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert a 64x64 direction map text file into a PNG or PPM preview.
+"""Convert a 16x16 direction map text file into a PNG or PPM preview.
 
 The PNG writer uses only the Python standard library, so no Pillow dependency is
 required.
@@ -16,27 +16,16 @@ COLORS = {
     0: (230, 35, 35),
     1: (235, 130, 35),
     2: (230, 210, 35),
-    3: (150, 220, 35),
-    4: (80, 190, 70),
-    5: (30, 210, 160),
-    6: (35, 170, 210),
-    7: (35, 120, 230),
-    8: (45, 95, 220),
-    9: (100, 80, 220),
-    10: (145, 70, 210),
-    11: (185, 70, 200),
-    12: (215, 70, 170),
-    13: (230, 50, 120),
-    14: (230, 40, 75),
-    15: (235, 90, 45),
+    3: (80, 190, 70),
+    4: (35, 170, 210),
+    5: (45, 95, 220),
+    6: (145, 70, 210),
+    7: (215, 70, 170),
 }
-
-GRID = 64
-DIR_BINS = 16
 
 
 def read_map(path):
-    values = [[0 for _ in range(GRID)] for _ in range(GRID)]
+    values = [[0 for _ in range(16)] for _ in range(16)]
     with path.open("r", encoding="utf-8") as f:
         for line in f:
             parts = line.strip().split()
@@ -45,21 +34,21 @@ def read_map(path):
             if len(parts) != 3:
                 raise ValueError(f"Bad line in {path}: {line.rstrip()}")
             x, y, direction = (int(p) for p in parts)
-            if not (0 <= x < GRID and 0 <= y < GRID and 0 <= direction < DIR_BINS):
+            if not (0 <= x < 16 and 0 <= y < 16 and 0 <= direction < 8):
                 raise ValueError(f"Out-of-range direction entry: {line.rstrip()}")
             values[y][x] = direction
     return values
 
 
 def write_ppm(values, path, scale):
-    width = GRID * scale
-    height = GRID * scale
+    width = 16 * scale
+    height = 16 * scale
     with path.open("wb") as f:
         f.write(f"P6\n{width} {height}\n255\n".encode("ascii"))
-        for by in range(GRID):
+        for by in range(16):
             for sy in range(scale):
                 row = bytearray()
-                for bx in range(GRID):
+                for bx in range(16):
                     r, g, b = COLORS[values[by][bx]]
                     if sy == scale // 2:
                         r, g, b = 255, 255, 255
@@ -71,10 +60,10 @@ def write_ppm(values, path, scale):
 
 def render_rgb(values, scale):
     rows = []
-    for by in range(GRID):
+    for by in range(16):
         for sy in range(scale):
             row = bytearray()
-            for bx in range(GRID):
+            for bx in range(16):
                 r, g, b = COLORS[values[by][bx]]
                 if sy == scale // 2:
                     r, g, b = 255, 255, 255
@@ -92,8 +81,8 @@ def png_chunk(chunk_type, data):
 
 
 def write_png(values, path, scale):
-    width = GRID * scale
-    height = GRID * scale
+    width = 16 * scale
+    height = 16 * scale
     raw = bytearray()
     for row in render_rgb(values, scale):
         raw.append(0)  # PNG filter type 0.
@@ -112,11 +101,11 @@ def main():
     parser = argparse.ArgumentParser(description="Convert dir_map.txt to a color PNG or PPM preview.")
     parser.add_argument("input", nargs="?", default="dir_map.txt", help="input direction map text file")
     parser.add_argument("output", nargs="?", default="dir_map.png", help="output preview path (.png or .ppm)")
-    parser.add_argument("--scale", type=int, default=8, help="pixels per direction block")
+    parser.add_argument("--scale", type=int, default=20, help="pixels per direction block")
     args = parser.parse_args()
 
-    if args.scale < 2:
-        raise SystemExit("--scale must be at least 2")
+    if args.scale < 4:
+        raise SystemExit("--scale must be at least 4")
 
     values = read_map(Path(args.input))
     output = Path(args.output)

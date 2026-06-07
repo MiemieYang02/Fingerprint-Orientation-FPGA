@@ -12,15 +12,8 @@ MEM_PATH = ROOT / "fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/so
 OUT_DIR = ROOT / "fingerprint_direction_fpga/previews"
 IMAGE_W = 256
 IMAGE_H = 256
-BLOCK = 4
+BLOCK = 16
 SCALE = 2
-DIR_BINS = 16
-DIR_STEP_DEG = 180.0 / DIR_BINS
-GRID_W = IMAGE_W // BLOCK
-GRID_H = IMAGE_H // BLOCK
-GRADIENT_THRESHOLD = 10
-MIN_SMOOTH_NEIGHBORS = 4
-MIN_SMOOTH_STRENGTH = 512
 
 
 def png_chunk(chunk_type, data):
@@ -71,18 +64,18 @@ def sobel(gray, x, y):
 
 def angle_to_bin(theta_deg):
     theta_deg %= 180.0
-    return int(math.floor((theta_deg + DIR_STEP_DEG / 2.0) / DIR_STEP_DEG)) & (DIR_BINS - 1)
+    return int(math.floor((theta_deg + 11.25) / 22.5)) & 7
 
 
 def bin_to_angle(direction):
-    return direction * DIR_STEP_DEG
+    return direction * 22.5
 
 
 def current_pixel_mode_map(gray, rotate_to_tangent):
-    bins = [[None for _ in range(GRID_W)] for _ in range(GRID_H)]
-    for by in range(GRID_H):
-        for bx in range(GRID_W):
-            counts = [0] * DIR_BINS
+    bins = [[0 for _ in range(16)] for _ in range(16)]
+    for by in range(16):
+        for bx in range(16):
+            counts = [0] * 8
             for y in range(max(1, by * BLOCK), min(IMAGE_H - 1, (by + 1) * BLOCK)):
                 for x in range(max(1, bx * BLOCK), min(IMAGE_W - 1, (bx + 1) * BLOCK)):
                     gx, gy = sobel(gray, x, y)
@@ -92,59 +85,32 @@ def current_pixel_mode_map(gray, rotate_to_tangent):
                     if rotate_to_tangent:
                         theta += 90.0
                     counts[angle_to_bin(theta)] += 1
-            bins[by][bx] = max(range(DIR_BINS), key=lambda i: counts[i])
+            bins[by][bx] = max(range(8), key=lambda i: counts[i])
     return bins
 
 
 def structure_tensor_map(gray):
-    tensor_x = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
-    tensor_y = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
-    active = [[False for _ in range(GRID_W)] for _ in range(GRID_H)]
-    bins = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
-    for by in range(GRID_H):
-        for bx in range(GRID_W):
+    bins = [[0 for _ in range(16)] for _ in range(16)]
+    for by in range(16):
+        for bx in range(16):
             v_x = 0
             v_y = 0
-            votes = 0
             for y in range(max(1, by * BLOCK), min(IMAGE_H - 1, (by + 1) * BLOCK)):
                 for x in range(max(1, bx * BLOCK), min(IMAGE_W - 1, (bx + 1) * BLOCK)):
                     gx, gy = sobel(gray, x, y)
-                    if abs(gx) + abs(gy) < GRADIENT_THRESHOLD:
-                        continue
                     v_x += gx * gx - gy * gy
                     v_y += 2 * gx * gy
-                    votes += 1
-            tensor_x[by][bx] = v_x
-            tensor_y[by][bx] = v_y
-            active[by][bx] = votes >= 3
-
-    for by in range(1, GRID_H - 1):
-        for bx in range(1, GRID_W - 1):
-            sx = 0
-            sy = 0
-            votes = 0
-            for oy in (-1, 0, 1):
-                for ox in (-1, 0, 1):
-                    yy = by + oy
-                    xx = bx + ox
-                    if active[yy][xx]:
-                        sx += tensor_x[yy][xx]
-                        sy += tensor_y[yy][xx]
-                        votes += 1
-            if votes >= MIN_SMOOTH_NEIGHBORS and abs(sx) + abs(sy) >= MIN_SMOOTH_STRENGTH:
-                normal_theta = 0.5 * math.degrees(math.atan2(sy, sx))
-                bins[by][bx] = angle_to_bin(normal_theta + 90.0)
-            else:
-                bins[by][bx] = None
+            normal_theta = 0.5 * math.degrees(math.atan2(v_y, v_x))
+            bins[by][bx] = angle_to_bin(normal_theta + 90.0)
     return bins
 
 
 def synthetic_phase_tangent_map():
-    bins = [[0 for _ in range(GRID_W)] for _ in range(GRID_H)]
+    bins = [[0 for _ in range(16)] for _ in range(16)]
     cx = (IMAGE_W - 1) / 2.0
     cy = (IMAGE_H - 1) / 2.0
-    for by in range(GRID_H):
-        for bx in range(GRID_W):
+    for by in range(16):
+        for bx in range(16):
             # Use the center of the local block. This is only a diagnostic
             # reference for the generated static image, not a hardware input.
             x = bx * BLOCK + BLOCK / 2.0
@@ -163,16 +129,18 @@ def synthetic_phase_tangent_map():
     return bins
 
 
-def draw_line(rgb, width, height, cx, cy, angle_deg, length=7, color=(255, 255, 255)):
+def draw_line(rgb, width, height, cx, cy, angle_deg, length=22, color=(255, 255, 255)):
     rad = math.radians(angle_deg)
     dx = math.cos(rad)
     dy = math.sin(rad)
     for step in range(-length // 2, length // 2 + 1):
         x = int(round(cx + dx * step))
         y = int(round(cy + dy * step))
-        if 0 <= x < width and 0 <= y < height:
-            idx = (y * width + x) * 3
-            rgb[idx:idx + 3] = bytes(color)
+        for yy in range(y - 1, y + 2):
+            for xx in range(x - 1, x + 2):
+                if 0 <= xx < width and 0 <= yy < height:
+                    idx = (yy * width + xx) * 3
+                    rgb[idx:idx + 3] = bytes(color)
 
 
 def render_overlay(gray, bins, path, repeat=1):
@@ -185,13 +153,11 @@ def render_overlay(gray, bins, path, repeat=1):
             idx = (y * width + x) * 3
             rgb[idx:idx + 3] = bytes((v, v, v))
 
-    offsets = [(0, 0)] if repeat == 1 else [(-1, -1), (1, -1), (-1, 1), (1, 1)]
-    for by in range(GRID_H):
-        for bx in range(GRID_W):
+    offsets = [(0, 0)] if repeat == 1 else [(-4, -4), (4, -4), (-4, 4), (4, 4)]
+    for by in range(16):
+        for bx in range(16):
             base_x = (bx * BLOCK + BLOCK / 2) * SCALE
             base_y = (by * BLOCK + BLOCK / 2) * SCALE
-            if bins[by][bx] is None:
-                continue
             for ox, oy in offsets:
                 draw_line(rgb, width, height, base_x + ox * SCALE, base_y + oy * SCALE, bin_to_angle(bins[by][bx]))
     write_png(rgb, width, height, path)

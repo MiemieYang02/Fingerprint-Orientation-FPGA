@@ -2,7 +2,6 @@ set root_dir [file normalize [file join [file dirname [info script]] ..]]
 set proj_file [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.xpr]
 set out_dir [file join $root_dir fingerprint_direction_fpga]
 
-source [file join $root_dir scripts update_vivado_project.tcl]
 open_project $proj_file
 set_property top fingerprint_ref_hdmi_static_top [get_filesets sources_1]
 update_compile_order -fileset sources_1

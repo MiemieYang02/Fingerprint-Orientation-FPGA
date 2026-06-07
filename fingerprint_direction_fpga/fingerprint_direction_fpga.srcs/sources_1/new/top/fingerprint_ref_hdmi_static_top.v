@@ -23,13 +23,13 @@ wire [15:0] display_data;
 wire data_req;
 wire block_valid;
 wire block_active;
-wire [5:0] block_x;
-wire [5:0] block_y;
-wire [3:0] block_dir;
+wire [4:0] block_x;
+wire [4:0] block_y;
+wire [2:0] block_dir;
 wire algorithm_frame_done;
-wire [5:0] read_block_x;
-wire [5:0] read_block_y;
-wire [3:0] read_block_dir;
+wire [4:0] read_block_x;
+wire [4:0] read_block_y;
+wire [2:0] read_block_dir;
 wire read_block_active;
 wire direction_frame_ready;
 
@@ -60,10 +60,7 @@ fpga_orientation_static_top #(
     .frame_done(algorithm_frame_done)
 );
 
-direction_field_buffer #(
-    .FRAME_READY_X(6'd62),
-    .FRAME_READY_Y(6'd62)
-) u_direction_field_buffer (
+direction_field_buffer u_direction_field_buffer (
     .clk(pixel_clk),
     .rst_n(rst_n),
     .block_valid(block_valid),

@@ -6,7 +6,6 @@ set rtl_files [list \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/image/pixel_window_3x3.v \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/sobel/sobel_core.v \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/direction/block_tensor_stat.v \
-  fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/direction/tensor_field_smoother.v \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/cordic/cordic_tensor_direction.v \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/top/fpga_orientation_pipeline.v \
   fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/top/fpga_orientation_top.v \

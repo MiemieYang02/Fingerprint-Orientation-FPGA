@@ -14,9 +14,9 @@ module tb_fpga_orientation_pipeline;
 
     wire block_valid;
     wire block_active;
-    wire [5:0] block_x;
-    wire [5:0] block_y;
-    wire [3:0] block_dir;
+    wire [4:0] block_x;
+    wire [4:0] block_y;
+    wire [2:0] block_dir;
     wire frame_done;
 
     integer block_count;
@@ -68,15 +68,15 @@ module tb_fpga_orientation_pipeline;
     always @(posedge clk) begin
         if (rst_n && block_valid) begin
             block_count = block_count + 1;
-            if (block_dir !== 4'd8) begin
+            if (block_dir !== 3'd4) begin
                 $display("PIPELINE_DIRECTION_MISMATCH block_x=%0d block_y=%0d dir=%0d", block_x, block_y, block_dir);
                 error_count = error_count + 1;
             end
         end
 
         if (rst_n && frame_done) begin
-            if (block_count != 3844) begin
-                $display("PIPELINE_BLOCK_COUNT_MISMATCH count=%0d expected=3844", block_count);
+            if (block_count != 1024) begin
+                $display("PIPELINE_BLOCK_COUNT_MISMATCH count=%0d expected=1024", block_count);
                 $finish(1);
             end
             if (error_count != 0) begin

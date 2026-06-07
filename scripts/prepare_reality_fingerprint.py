@@ -25,14 +25,10 @@ OVERLAY_PATH = OUT_DIR / "fingerprint_reality_orientation_overlay.png"
 
 IMAGE_W = 256
 IMAGE_H = 256
-BLOCK = 4
+BLOCK = 8
 SCALE = 2
-DIR_BINS = 16
-DIR_STEP_DEG = 180.0 / DIR_BINS
 GRADIENT_THRESHOLD = 10
-MIN_BLOCK_VOTES = 3
-MIN_SMOOTH_NEIGHBORS = 4
-MIN_SMOOTH_STRENGTH = 512
+MIN_BLOCK_VOTES = 8
 
 
 def png_chunk(chunk_type, data):
@@ -145,8 +141,8 @@ def smooth_tensor_field(tensor_x, tensor_y, active):
     smooth_y = [[0 for _ in range(blocks_x)] for _ in range(blocks_y)]
     smooth_active = [[False for _ in range(blocks_x)] for _ in range(blocks_y)]
 
-    for by in range(1, blocks_y - 1):
-        for bx in range(1, blocks_x - 1):
+    for by in range(blocks_y):
+        for bx in range(blocks_x):
             sx = 0
             sy = 0
             votes = 0
@@ -160,40 +156,39 @@ def smooth_tensor_field(tensor_x, tensor_y, active):
                         votes += 1
             smooth_x[by][bx] = sx
             smooth_y[by][bx] = sy
-            smooth_active[by][bx] = (
-                votes >= MIN_SMOOTH_NEIGHBORS and
-                abs(sx) + abs(sy) >= MIN_SMOOTH_STRENGTH
-            )
+            smooth_active[by][bx] = active[by][bx] and votes >= 3
     return smooth_x, smooth_y, smooth_active
 
 
 def angle_to_bin(theta_deg):
     theta_deg %= 180.0
-    return int(math.floor((theta_deg + DIR_STEP_DEG / 2.0) / DIR_STEP_DEG)) & (DIR_BINS - 1)
+    return int(math.floor((theta_deg + 11.25) / 22.5)) & 7
 
 
 def bin_to_angle(direction):
-    return direction * DIR_STEP_DEG
+    return direction * 22.5
 
 
 def tensor_to_angle(tx, ty):
     normal = 0.5 * math.degrees(math.atan2(ty, tx))
     direction = angle_to_bin(normal + 90.0)
-    if direction not in (0, 8):
-        direction = (direction + 8) & (DIR_BINS - 1)
+    if direction not in (0, 4):
+        direction = (direction + 4) & 7
     return bin_to_angle(direction)
 
 
-def draw_line(rgb, width, height, cx, cy, angle_deg, length=7, color=(255, 255, 255)):
+def draw_line(rgb, width, height, cx, cy, angle_deg, length=12, color=(255, 255, 255)):
     rad = math.radians(angle_deg)
     dx = math.cos(rad)
     dy = math.sin(rad)
     for step in range(-length // 2, length // 2 + 1):
         x = int(round(cx + dx * step))
         y = int(round(cy + dy * step))
-        if 0 <= x < width and 0 <= y < height:
-            idx = (y * width + x) * 3
-            rgb[idx:idx + 3] = bytes(color)
+        for yy in range(y - 1, y + 2):
+            for xx in range(x - 1, x + 2):
+                if 0 <= xx < width and 0 <= yy < height:
+                    idx = (yy * width + xx) * 3
+                    rgb[idx:idx + 3] = bytes(color)
 
 
 def render_overlay(gray, tensor_x, tensor_y, active, path):

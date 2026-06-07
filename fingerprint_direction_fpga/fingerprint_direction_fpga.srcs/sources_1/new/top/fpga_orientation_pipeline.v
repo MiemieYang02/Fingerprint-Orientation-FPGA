@@ -18,12 +18,12 @@ module fpga_orientation_pipeline #(
     input  wire       pixel_line_start,
     input  wire       pixel_frame_done,
 
-    // One result per smoothed 4x4 block after Sobel, tensor accumulation, and CORDIC.
+    // One result per 8x8 block after Sobel, tensor accumulation, and CORDIC.
     output wire       block_valid,
     output wire       block_active,
-    output wire [5:0] block_x,
-    output wire [5:0] block_y,
-    output wire [3:0] block_dir,
+    output wire [4:0] block_x,
+    output wire [4:0] block_y,
+    output wire [2:0] block_dir,
     output wire       frame_done
 );
     wire win_valid;
@@ -46,16 +46,10 @@ module fpga_orientation_pipeline #(
 
     wire tensor_valid;
     wire tensor_active;
-    wire [5:0] tensor_block_x;
-    wire [5:0] tensor_block_y;
+    wire [4:0] tensor_block_x;
+    wire [4:0] tensor_block_y;
     wire signed [31:0] tensor_x;
     wire signed [31:0] tensor_y;
-    wire smooth_tensor_valid;
-    wire smooth_tensor_active;
-    wire [5:0] smooth_tensor_block_x;
-    wire [5:0] smooth_tensor_block_y;
-    wire signed [31:0] smooth_tensor_x;
-    wire signed [31:0] smooth_tensor_y;
 
     reg [63:0] done_pipe;
 
@@ -115,32 +109,15 @@ module fpga_orientation_pipeline #(
         .tensor_y(tensor_y)
     );
 
-    tensor_field_smoother u_tensor_field_smoother (
+    cordic_tensor_direction u_cordic_tensor_direction (
         .clk(clk),
         .rst_n(rst_n),
         .in_valid(tensor_valid),
         .in_active(tensor_active),
         .in_block_x(tensor_block_x),
         .in_block_y(tensor_block_y),
-        .in_tensor_x(tensor_x),
-        .in_tensor_y(tensor_y),
-        .out_valid(smooth_tensor_valid),
-        .out_active(smooth_tensor_active),
-        .out_block_x(smooth_tensor_block_x),
-        .out_block_y(smooth_tensor_block_y),
-        .out_tensor_x(smooth_tensor_x),
-        .out_tensor_y(smooth_tensor_y)
-    );
-
-    cordic_tensor_direction u_cordic_tensor_direction (
-        .clk(clk),
-        .rst_n(rst_n),
-        .in_valid(smooth_tensor_valid),
-        .in_active(smooth_tensor_active),
-        .in_block_x(smooth_tensor_block_x),
-        .in_block_y(smooth_tensor_block_y),
-        .tensor_x(smooth_tensor_x),
-        .tensor_y(smooth_tensor_y),
+        .tensor_x(tensor_x),
+        .tensor_y(tensor_y),
         .block_valid(block_valid),
         .block_active(block_active),
         .block_x(block_x),

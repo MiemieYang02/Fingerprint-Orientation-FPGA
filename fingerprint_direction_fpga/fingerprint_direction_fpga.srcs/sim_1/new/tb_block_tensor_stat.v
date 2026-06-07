@@ -12,22 +12,22 @@ module tb_block_tensor_stat;
 
     wire block_valid;
     wire block_active;
-    wire [5:0] block_x;
-    wire [5:0] block_y;
+    wire [4:0] block_x;
+    wire [4:0] block_y;
     wire signed [31:0] tensor_x;
     wire signed [31:0] tensor_y;
 
     integer seen_count;
     reg last_active;
-    reg [5:0] last_x;
-    reg [5:0] last_y;
+    reg [4:0] last_x;
+    reg [4:0] last_y;
     reg signed [31:0] last_tensor_x;
     reg signed [31:0] last_tensor_y;
     integer x;
     integer y;
 
     block_tensor_stat #(
-        .MIN_BLOCK_VOTES(3)
+        .MIN_BLOCK_VOTES(4)
     ) dut (
         .clk(clk),
         .rst_n(rst_n),
@@ -106,37 +106,37 @@ module tb_block_tensor_stat;
         gy = 12'sd0;
         seen_count = 0;
         last_active = 1'b0;
-        last_x = 6'd0;
-        last_y = 6'd0;
+        last_x = 5'd0;
+        last_y = 5'd0;
         last_tensor_x = 32'sd0;
         last_tensor_y = 32'sd0;
         repeat (4) @(posedge clk);
         rst_n = 1'b1;
 
-        for (y = 0; y < 4; y = y + 1) begin
-            for (x = 0; x < 4; x = x + 1) begin
+        for (y = 0; y < 8; y = y + 1) begin
+            for (x = 0; x < 8; x = x + 1) begin
                 send_gradient(x[7:0], y[7:0], 12'sd10, 12'sd0, 1'b1);
             end
         end
         in_valid = 1'b0;
         vote_valid = 1'b0;
         wait_seen(1);
-        if (last_x !== 6'd0 || last_y !== 6'd0 || last_active !== 1'b1 ||
-            last_tensor_x !== 32'sd1600 || last_tensor_y !== 32'sd0) begin
+        if (last_x !== 5'd0 || last_y !== 5'd0 || last_active !== 1'b1 ||
+            last_tensor_x !== 32'sd6400 || last_tensor_y !== 32'sd0) begin
             $display("TENSOR_STAT_HORIZONTAL_FAIL x=%0d y=%0d active=%0d tx=%0d ty=%0d",
                      last_x, last_y, last_active, last_tensor_x, last_tensor_y);
             $finish(1);
         end
 
-        for (y = 0; y < 4; y = y + 1) begin
-            for (x = 4; x < 8; x = x + 1) begin
-                send_gradient(x[7:0], y[7:0], 12'sd0, 12'sd10, (x < 6 && y == 0));
+        for (y = 0; y < 8; y = y + 1) begin
+            for (x = 8; x < 16; x = x + 1) begin
+                send_gradient(x[7:0], y[7:0], 12'sd0, 12'sd10, (x < 10 && y == 0));
             end
         end
         in_valid = 1'b0;
         vote_valid = 1'b0;
         wait_seen(2);
-        if (last_x !== 6'd1 || last_y !== 6'd0 || last_active !== 1'b0 ||
+        if (last_x !== 5'd1 || last_y !== 5'd0 || last_active !== 1'b0 ||
             last_tensor_x !== -32'sd200 || last_tensor_y !== 32'sd0) begin
             $display("TENSOR_STAT_CONFIDENCE_FAIL x=%0d y=%0d active=%0d tx=%0d ty=%0d",
                      last_x, last_y, last_active, last_tensor_x, last_tensor_y);
