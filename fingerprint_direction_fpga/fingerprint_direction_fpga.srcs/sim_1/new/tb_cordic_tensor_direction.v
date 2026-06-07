@@ -125,7 +125,7 @@ module tb_cordic_tensor_direction;
 
         send_tensor(5'd7, 5'd8, 32'sd0, -32'sd10000, 1'b1);
         wait_seen(3);
-        if (last_x !== 5'd7 || last_y !== 5'd8 || last_active !== 1'b1 || last_dir !== 3'd6) begin
+        if (last_x !== 5'd7 || last_y !== 5'd8 || last_active !== 1'b1 || last_dir !== 3'd2) begin
             $display("CORDIC_TENSOR_OBLIQUE_POSITIVE_FAIL x=%0d y=%0d active=%0d dir=%0d",
                      last_x, last_y, last_active, last_dir);
             $finish(1);
@@ -133,7 +133,7 @@ module tb_cordic_tensor_direction;
 
         send_tensor(5'd9, 5'd10, 32'sd0, 32'sd10000, 1'b1);
         wait_seen(4);
-        if (last_x !== 5'd9 || last_y !== 5'd10 || last_active !== 1'b1 || last_dir !== 3'd2) begin
+        if (last_x !== 5'd9 || last_y !== 5'd10 || last_active !== 1'b1 || last_dir !== 3'd6) begin
             $display("CORDIC_TENSOR_OBLIQUE_NEGATIVE_FAIL x=%0d y=%0d active=%0d dir=%0d",
                      last_x, last_y, last_active, last_dir);
             $finish(1);

@@ -171,9 +171,13 @@ def bin_to_angle(direction):
     return direction * 22.5
 
 
+def display_bin(direction):
+    return {1: 7, 2: 6, 3: 5, 5: 3, 6: 2, 7: 1}.get(direction, direction)
+
+
 def tensor_to_angle(tx, ty):
     ridge = 0.5 * math.degrees(math.atan2(ty, tx))
-    return bin_to_angle(angle_to_bin(ridge))
+    return bin_to_angle(display_bin(angle_to_bin(ridge)))
 
 
 def draw_line(rgb, width, height, cx, cy, angle_deg, length=12, color=(255, 255, 255)):

@@ -71,6 +71,10 @@ def bin_to_angle(direction):
     return direction * 22.5
 
 
+def display_bin(direction):
+    return {1: 7, 2: 6, 3: 5, 5: 3, 6: 2, 7: 1}.get(direction, direction)
+
+
 def current_pixel_mode_map(gray, rotate_to_tangent):
     bins = [[0 for _ in range(16)] for _ in range(16)]
     for by in range(16):
@@ -103,7 +107,7 @@ def structure_tensor_map(gray):
                     v_x += gy * gy - gx * gx
                     v_y -= 2 * gx * gy
             ridge_theta = 0.5 * math.degrees(math.atan2(v_y, v_x))
-            bins[by][bx] = angle_to_bin(ridge_theta)
+            bins[by][bx] = display_bin(angle_to_bin(ridge_theta))
     return bins
 
 
