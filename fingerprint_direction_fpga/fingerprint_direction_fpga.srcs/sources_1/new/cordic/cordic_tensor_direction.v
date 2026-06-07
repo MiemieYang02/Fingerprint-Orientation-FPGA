@@ -57,21 +57,6 @@ module cordic_tensor_direction #(
         end
     endfunction
 
-    function [2:0] display_dir;
-        input [2:0] ridge_dir;
-        begin
-            case (ridge_dir)
-                3'd1: display_dir = 3'd7;
-                3'd2: display_dir = 3'd6;
-                3'd3: display_dir = 3'd5;
-                3'd5: display_dir = 3'd3;
-                3'd6: display_dir = 3'd2;
-                3'd7: display_dir = 3'd1;
-                default: display_dir = ridge_dir;
-            endcase
-        end
-    endfunction
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             block_valid <= 1'b0;
@@ -142,10 +127,7 @@ module cordic_tensor_direction #(
                 end else begin
                     rounded_ridge_angle = (z_pipe[ITER] >>> 1) + 16'sd16;
                     quantized_ridge_dir = rounded_ridge_angle[7:5];
-                    // Keep verified horizontal/vertical bins. Mirror only the
-                    // oblique bins so displayed line segments follow the
-                    // observed fingerprint ridge flow in image coordinates.
-                    block_dir <= display_dir(quantized_ridge_dir);
+                    block_dir <= quantized_ridge_dir;
                 end
             end
         end

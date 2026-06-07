@@ -75,6 +75,23 @@ function near_center_scaled;
     end
 endfunction
 
+function [2:0] display_dir;
+    input [2:0] ridge_dir;
+    begin
+        case (ridge_dir)
+            3'd1: display_dir = 3'd7;
+            3'd2: display_dir = 3'd6;
+            3'd3: display_dir = 3'd5;
+            3'd5: display_dir = 3'd3;
+            3'd6: display_dir = 3'd2;
+            3'd7: display_dir = 3'd1;
+            default: display_dir = ridge_dir;
+        endcase
+    end
+endfunction
+
+wire [2:0] render_block_dir = display_dir(read_block_dir);
+
 // Direction bins are ridge tangent angles over 0..180 degrees:
 // 0=0deg, 1=22.5deg, 2=45deg, 3=67.5deg, 4=90deg,
 // 5=112.5deg, 6=135deg, 7=157.5deg.
@@ -89,15 +106,17 @@ wire line_112 = in_segment && near_center_scaled(sy_5 + sx_12);
 wire line_135 = in_segment && near_center(sy + sx);
 wire line_157 = in_segment && near_center_scaled(sy_12 + sx_5);
 
+// Keep verified horizontal/vertical bins. Mirror only the oblique bins at the
+// display boundary so the stored algorithm direction remains unchanged.
 wire direction_line = read_block_active && (
-    ((read_block_dir == 3'd0) && line_0)   ||
-    ((read_block_dir == 3'd1) && line_22)  ||
-    ((read_block_dir == 3'd2) && line_45)  ||
-    ((read_block_dir == 3'd3) && line_67)  ||
-    ((read_block_dir == 3'd4) && line_90)  ||
-    ((read_block_dir == 3'd5) && line_112) ||
-    ((read_block_dir == 3'd6) && line_135) ||
-    ((read_block_dir == 3'd7) && line_157));
+    ((render_block_dir == 3'd0) && line_0)   ||
+    ((render_block_dir == 3'd1) && line_22)  ||
+    ((render_block_dir == 3'd2) && line_45)  ||
+    ((render_block_dir == 3'd3) && line_67)  ||
+    ((render_block_dir == 3'd4) && line_90)  ||
+    ((render_block_dir == 3'd5) && line_112) ||
+    ((render_block_dir == 3'd6) && line_135) ||
+    ((render_block_dir == 3'd7) && line_157));
 
 assign read_block_x = in_field ? field_x[8:4] : 5'd0;
 assign read_block_y = in_field ? field_y[8:4] : 5'd0;

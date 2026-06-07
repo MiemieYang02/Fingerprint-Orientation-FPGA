@@ -97,8 +97,11 @@ module tb_hdmi_direction_field_renderer;
         expect_pixel(11'd271, 11'd135, 3'd0, 1'b1, 5'd0, 5'd0, 16'hEF5D);
         expect_pixel(11'd295, 11'd168, 3'd4, 1'b1, 5'd2, 5'd2, 16'hFFFF);
         expect_pixel(11'd295, 11'd170, 3'd0, 1'b1, 5'd2, 5'd2, 16'hEF5D);
-        expect_pixel(11'd311, 11'd183, 3'd2, 1'b1, 5'd3, 5'd3, 16'hFFFF);
-        expect_pixel(11'd311, 11'd168, 3'd6, 1'b1, 5'd3, 5'd2, 16'hFFFF);
+        // Display mirrors oblique bins only: 2 draws as 6, and 6 draws as 2.
+        expect_pixel(11'd308, 11'd172, 3'd2, 1'b1, 5'd3, 5'd2, 16'hFFFF);
+        expect_not_white(11'd308, 11'd180, 3'd2);
+        expect_pixel(11'd308, 11'd180, 3'd6, 1'b1, 5'd3, 5'd3, 16'hFFFF);
+        expect_not_white(11'd308, 11'd172, 3'd6);
         expect_not_white(11'd259, 11'd133, 3'd1);
 
         frame_ready = 1'b0;
