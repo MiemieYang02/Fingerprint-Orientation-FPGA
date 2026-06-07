@@ -1,11 +1,11 @@
 `timescale 1ns/1ps
 
-// Accumulates Sobel gradients over one 8x8 local block using the standard
-// fingerprint orientation tensor:
-//   tensor_x = sum(Gx*Gx - Gy*Gy)
-//   tensor_y = sum(2*Gx*Gy)
-// The CORDIC stage consumes this double-angle vector and converts it to the
-// ridge tangent direction used for display.
+// Accumulates Sobel gradients over one 8x8 local block. Sobel gives the ridge
+// normal, so each gradient is first rotated to the fingerprint ridge tangent:
+//   ridge_gx = -Gy
+//   ridge_gy =  Gx
+// The tensor below is therefore already a ridge-tangent double-angle vector
+// before it reaches the CORDIC stage.
 module block_tensor_stat #(
     parameter IMAGE_W = 256,
     parameter IMAGE_H = 256,
@@ -36,8 +36,9 @@ module block_tensor_stat #(
     wire [23:0] gx_sq = gx * gx;
     wire [23:0] gy_sq = gy * gy;
     wire signed [23:0] gx_gy = gx * gy;
-    wire signed [24:0] tensor_x_term_raw = $signed({1'b0, gx_sq}) - $signed({1'b0, gy_sq});
-    wire signed [24:0] tensor_y_term_raw = $signed({gx_gy[23], gx_gy}) <<< 1;
+    wire signed [24:0] tensor_x_term_raw = $signed({1'b0, gy_sq}) - $signed({1'b0, gx_sq});
+    wire signed [24:0] tensor_xy_double_raw = $signed({gx_gy[23], gx_gy}) <<< 1;
+    wire signed [24:0] tensor_y_term_raw = -tensor_xy_double_raw;
     wire signed [31:0] tensor_x_term = {{7{tensor_x_term_raw[24]}}, tensor_x_term_raw};
     wire signed [31:0] tensor_y_term = {{7{tensor_y_term_raw[24]}}, tensor_y_term_raw};
 

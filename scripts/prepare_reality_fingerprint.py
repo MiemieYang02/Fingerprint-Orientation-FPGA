@@ -125,8 +125,10 @@ def build_tensor_field(gray):
                     gx, gy = sobel(gray, x, y)
                     if abs(gx) + abs(gy) < GRADIENT_THRESHOLD:
                         continue
-                    sx += gx * gx - gy * gy
-                    sy += 2 * gx * gy
+                    # Match the RTL: rotate Sobel normal (Gx, Gy) to ridge
+                    # tangent (-Gy, Gx) before tensor accumulation.
+                    sx += gy * gy - gx * gx
+                    sy -= 2 * gx * gy
                     votes += 1
             tensor_x[by][bx] = sx
             tensor_y[by][bx] = sy
@@ -170,11 +172,8 @@ def bin_to_angle(direction):
 
 
 def tensor_to_angle(tx, ty):
-    normal = 0.5 * math.degrees(math.atan2(ty, tx))
-    direction = angle_to_bin(normal + 90.0)
-    if direction not in (0, 4):
-        direction = (direction + 4) & 7
-    return bin_to_angle(direction)
+    ridge = 0.5 * math.degrees(math.atan2(ty, tx))
+    return bin_to_angle(angle_to_bin(ridge))
 
 
 def draw_line(rgb, width, height, cx, cy, angle_deg, length=12, color=(255, 255, 255)):

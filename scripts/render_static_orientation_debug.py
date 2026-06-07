@@ -98,10 +98,12 @@ def structure_tensor_map(gray):
             for y in range(max(1, by * BLOCK), min(IMAGE_H - 1, (by + 1) * BLOCK)):
                 for x in range(max(1, bx * BLOCK), min(IMAGE_W - 1, (bx + 1) * BLOCK)):
                     gx, gy = sobel(gray, x, y)
-                    v_x += gx * gx - gy * gy
-                    v_y += 2 * gx * gy
-            normal_theta = 0.5 * math.degrees(math.atan2(v_y, v_x))
-            bins[by][bx] = angle_to_bin(normal_theta + 90.0)
+                    # Match the RTL: rotate Sobel normal (Gx, Gy) to ridge
+                    # tangent (-Gy, Gx) before tensor accumulation.
+                    v_x += gy * gy - gx * gx
+                    v_y -= 2 * gx * gy
+            ridge_theta = 0.5 * math.degrees(math.atan2(v_y, v_x))
+            bins[by][bx] = angle_to_bin(ridge_theta)
     return bins
 
 

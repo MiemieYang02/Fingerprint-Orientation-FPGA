@@ -106,8 +106,8 @@ module tb_cordic_tensor_direction;
         repeat (4) @(posedge clk);
         rst_n = 1'b1;
 
-        // Vertical Sobel normal means the fingerprint ridge itself is horizontal.
-        send_tensor(5'd3, 5'd4, -32'sd10000, 32'sd0, 1'b1);
+        // The CORDIC stage now receives ridge-tangent tensors directly.
+        send_tensor(5'd3, 5'd4, 32'sd10000, 32'sd0, 1'b1);
         wait_seen(1);
         if (last_x !== 5'd3 || last_y !== 5'd4 || last_active !== 1'b1 || last_dir !== 3'd0) begin
             $display("CORDIC_TENSOR_HORIZONTAL_RIDGE_FAIL x=%0d y=%0d active=%0d dir=%0d",
@@ -115,8 +115,7 @@ module tb_cordic_tensor_direction;
             $finish(1);
         end
 
-        // Horizontal Sobel normal means the fingerprint ridge itself is vertical.
-        send_tensor(5'd5, 5'd6, 32'sd10000, 32'sd0, 1'b1);
+        send_tensor(5'd5, 5'd6, -32'sd10000, 32'sd0, 1'b1);
         wait_seen(2);
         if (last_x !== 5'd5 || last_y !== 5'd6 || last_active !== 1'b1 || last_dir !== 3'd4) begin
             $display("CORDIC_TENSOR_VERTICAL_RIDGE_FAIL x=%0d y=%0d active=%0d dir=%0d",
@@ -124,8 +123,6 @@ module tb_cordic_tensor_direction;
             $finish(1);
         end
 
-        // Oblique tensor bins need one extra 90-degree display rotation to
-        // align with the visible fingerprint ridge direction in the HDMI view.
         send_tensor(5'd7, 5'd8, 32'sd0, -32'sd10000, 1'b1);
         wait_seen(3);
         if (last_x !== 5'd7 || last_y !== 5'd8 || last_active !== 1'b1 || last_dir !== 3'd6) begin

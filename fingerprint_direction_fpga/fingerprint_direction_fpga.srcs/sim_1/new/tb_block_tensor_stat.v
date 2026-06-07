@@ -121,9 +121,11 @@ module tb_block_tensor_stat;
         in_valid = 1'b0;
         vote_valid = 1'b0;
         wait_seen(1);
+        // Horizontal Sobel normal must be rotated before accumulation, so the
+        // block tensor describes a vertical fingerprint ridge.
         if (last_x !== 5'd0 || last_y !== 5'd0 || last_active !== 1'b1 ||
-            last_tensor_x !== 32'sd6400 || last_tensor_y !== 32'sd0) begin
-            $display("TENSOR_STAT_HORIZONTAL_FAIL x=%0d y=%0d active=%0d tx=%0d ty=%0d",
+            last_tensor_x !== -32'sd6400 || last_tensor_y !== 32'sd0) begin
+            $display("TENSOR_STAT_PRE_ROTATE_HORIZONTAL_NORMAL_FAIL x=%0d y=%0d active=%0d tx=%0d ty=%0d",
                      last_x, last_y, last_active, last_tensor_x, last_tensor_y);
             $finish(1);
         end
@@ -137,8 +139,23 @@ module tb_block_tensor_stat;
         vote_valid = 1'b0;
         wait_seen(2);
         if (last_x !== 5'd1 || last_y !== 5'd0 || last_active !== 1'b0 ||
-            last_tensor_x !== -32'sd200 || last_tensor_y !== 32'sd0) begin
+            last_tensor_x !== 32'sd200 || last_tensor_y !== 32'sd0) begin
             $display("TENSOR_STAT_CONFIDENCE_FAIL x=%0d y=%0d active=%0d tx=%0d ty=%0d",
+                     last_x, last_y, last_active, last_tensor_x, last_tensor_y);
+            $finish(1);
+        end
+
+        for (y = 0; y < 8; y = y + 1) begin
+            for (x = 16; x < 24; x = x + 1) begin
+                send_gradient(x[7:0], y[7:0], 12'sd10, 12'sd10, 1'b1);
+            end
+        end
+        in_valid = 1'b0;
+        vote_valid = 1'b0;
+        wait_seen(3);
+        if (last_x !== 5'd2 || last_y !== 5'd0 || last_active !== 1'b1 ||
+            last_tensor_x !== 32'sd0 || last_tensor_y !== -32'sd12800) begin
+            $display("TENSOR_STAT_PRE_ROTATE_OBLIQUE_NORMAL_FAIL x=%0d y=%0d active=%0d tx=%0d ty=%0d",
                      last_x, last_y, last_active, last_tensor_x, last_tensor_y);
             $finish(1);
         end

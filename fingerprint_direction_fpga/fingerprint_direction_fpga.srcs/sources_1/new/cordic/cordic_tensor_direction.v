@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
 
-// Converts a block-level orientation tensor into an 8-bin fingerprint ridge
-// direction. The tensor vector encodes twice the normal angle, so the final
-// ridge direction is half the CORDIC atan2 angle plus 90 degrees.
+// Converts a block-level ridge-tangent tensor into an 8-bin fingerprint ridge
+// direction. The input tensor vector encodes twice the ridge angle, so the
+// final direction is half the CORDIC atan2 angle.
 module cordic_tensor_direction #(
     parameter ITER = 8
 ) (
@@ -81,7 +81,7 @@ module cordic_tensor_direction #(
             valid_pipe[0] <= in_valid;
             active_pipe[0] <= in_valid && in_active;
             axis_pipe[0] <= in_valid && (tensor_y == 32'sd0);
-            axis_dir_pipe[0] <= (tensor_x < 32'sd0) ? 3'd0 : 3'd4;
+            axis_dir_pipe[0] <= (tensor_x < 32'sd0) ? 3'd4 : 3'd0;
             x_coord_pipe[0] <= in_block_x;
             y_coord_pipe[0] <= in_block_y;
 
@@ -125,18 +125,9 @@ module cordic_tensor_direction #(
                 if (axis_pipe[ITER]) begin
                     block_dir <= axis_dir_pipe[ITER];
                 end else begin
-                    rounded_ridge_angle = (z_pipe[ITER] >>> 1) + 16'sd128 + 16'sd16;
+                    rounded_ridge_angle = (z_pipe[ITER] >>> 1) + 16'sd16;
                     quantized_ridge_dir = rounded_ridge_angle[7:5];
-                    // The tensor/CORDIC math already preserves horizontal and
-                    // vertical axes. For oblique bins, the HDMI image coordinate
-                    // convention leaves the displayed segment on the Sobel
-                    // normal; rotate those non-axis bins by 90 degrees so the
-                    // visible line follows the fingerprint ridge.
-                    if ((quantized_ridge_dir == 3'd0) || (quantized_ridge_dir == 3'd4)) begin
-                        block_dir <= quantized_ridge_dir;
-                    end else begin
-                        block_dir <= quantized_ridge_dir + 3'd4;
-                    end
+                    block_dir <= quantized_ridge_dir;
                 end
             end
         end
