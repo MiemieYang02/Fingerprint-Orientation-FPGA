@@ -5,13 +5,12 @@ set_property IOSTANDARD LVCMOS33 [get_ports -quiet {clk sys_clk}]
 set_property PACKAGE_PIN P19 [get_ports -quiet {rst_n sys_rst_n}]
 set_property IOSTANDARD LVCMOS33 [get_ports -quiet {rst_n sys_rst_n}]
 
-# Demo image selection inputs, copied from the board examples that use
-# switch1=N15 and key2=G4. key2 is active-low, inverted in RTL.
-set_property PACKAGE_PIN N15 [get_ports -quiet switch1]
-set_property IOSTANDARD LVCMOS33 [get_ports -quiet switch1]
+# Demo image selection inputs from the HX7A75C handbook: SW1=N14, SW2=P16.
+set_property PACKAGE_PIN N14 [get_ports -quiet {sw[0]}]
+set_property IOSTANDARD LVCMOS33 [get_ports -quiet {sw[0]}]
 
-set_property PACKAGE_PIN G4 [get_ports -quiet key2]
-set_property IOSTANDARD SSTL15 [get_ports -quiet key2]
+set_property PACKAGE_PIN P16 [get_ports -quiet {sw[1]}]
+set_property IOSTANDARD LVCMOS33 [get_ports -quiet {sw[1]}]
 
 # HDMI-A pins copied from the reference OV5640 HDMI-A project.
 set_property PACKAGE_PIN AA9 [get_ports -quiet {tmds_data_p[0]}]

@@ -3,7 +3,7 @@
 module tb_hdmi_direction_field_renderer;
     reg clk;
     reg rst_n;
-    reg [1:0] image_sel;
+    reg [7:0] image_gray;
     reg data_req;
     reg [10:0] pixel_xpos;
     reg [10:0] pixel_ypos;
@@ -12,16 +12,15 @@ module tb_hdmi_direction_field_renderer;
     reg read_block_active;
     wire [4:0] read_block_x;
     wire [4:0] read_block_y;
+    wire [15:0] image_read_addr;
     wire [15:0] pixel_data;
 
     integer errors;
 
-    hdmi_direction_field_renderer #(
-        .MEM_FILE("fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/image/fingerprint_static_256.mem")
-    ) dut (
+    hdmi_direction_field_renderer dut (
         .clk(clk),
         .rst_n(rst_n),
-        .image_sel(image_sel),
+        .image_gray(image_gray),
         .data_req(data_req),
         .pixel_xpos(pixel_xpos),
         .pixel_ypos(pixel_ypos),
@@ -30,6 +29,7 @@ module tb_hdmi_direction_field_renderer;
         .read_block_active(read_block_active),
         .read_block_x(read_block_x),
         .read_block_y(read_block_y),
+        .image_read_addr(image_read_addr),
         .pixel_data(pixel_data)
     );
 
@@ -46,6 +46,8 @@ module tb_hdmi_direction_field_renderer;
             pixel_ypos = y;
             read_block_dir = dir;
             read_block_active = active;
+            image_gray = 8'heb;
+            @(posedge clk);
             @(posedge clk);
             #1;
             if (read_block_x !== exp_bx || read_block_y !== exp_by || pixel_data !== exp_rgb) begin
@@ -65,6 +67,8 @@ module tb_hdmi_direction_field_renderer;
             pixel_ypos = y;
             read_block_dir = dir;
             read_block_active = 1'b1;
+            image_gray = 8'heb;
+            @(posedge clk);
             @(posedge clk);
             #1;
             if (pixel_data === 16'hFFFF) begin
@@ -83,7 +87,7 @@ module tb_hdmi_direction_field_renderer;
     initial begin
         errors = 0;
         rst_n = 1'b0;
-        image_sel = 2'd0;
+        image_gray = 8'heb;
         data_req = 1'b1;
         frame_ready = 1'b1;
         pixel_xpos = 11'd0;

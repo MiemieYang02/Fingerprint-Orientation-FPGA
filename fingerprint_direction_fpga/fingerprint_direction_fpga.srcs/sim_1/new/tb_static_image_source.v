@@ -19,6 +19,8 @@ module tb_static_image_source;
     wire out_frame_start;
     wire out_line_start;
     wire frame_done;
+    reg [15:0] display_read_addr;
+    wire [7:0] display_read_gray;
 
     reg [7:0] expected_mem0 [0:TOTAL_PIXELS-1];
     reg [7:0] expected_mem1 [0:TOTAL_PIXELS-1];
@@ -26,6 +28,9 @@ module tb_static_image_source;
     integer pixel_count;
     integer line_start_count;
     integer frame_count;
+    reg display_check_valid;
+    reg [1:0] display_check_sel;
+    integer display_check_addr;
 
     image_static_mem_source #(
         .IMAGE_W(IMAGE_W),
@@ -37,6 +42,8 @@ module tb_static_image_source;
         .clk(clk),
         .rst_n(rst_n),
         .image_sel(image_sel),
+        .display_read_addr(display_read_addr),
+        .display_read_gray(display_read_gray),
         .out_valid(out_valid),
         .out_gray(out_gray),
         .out_x(out_x),
@@ -68,6 +75,8 @@ module tb_static_image_source;
         input [1:0] sel;
         begin
             image_sel = sel;
+            display_read_addr = 16'd0;
+            display_check_valid = 1'b0;
             rst_n = 1'b0;
             pixel_count = 0;
             line_start_count = 0;
@@ -101,6 +110,10 @@ module tb_static_image_source;
         pixel_count = 0;
         line_start_count = 0;
         frame_count = 0;
+        display_read_addr = 16'd0;
+        display_check_valid = 1'b0;
+        display_check_sel = 2'd0;
+        display_check_addr = 0;
 
         run_selected_frame(2'd0);
         run_selected_frame(2'd1);
@@ -119,6 +132,18 @@ module tb_static_image_source;
     always @(posedge clk) begin
         #1;
         if (rst_n && out_valid) begin
+            if (display_check_valid &&
+                display_read_gray !== expected_gray(display_check_sel, display_check_addr)) begin
+                $display("STATIC_SOURCE_DISPLAY_GRAY_MISMATCH sel=%0d addr=%0d gray=%0h expected=%0h",
+                         display_check_sel, display_check_addr, display_read_gray,
+                         expected_gray(display_check_sel, display_check_addr));
+                $finish(1);
+            end
+            display_check_valid <= 1'b1;
+            display_check_sel <= image_sel;
+            display_check_addr <= pixel_count;
+            display_read_addr <= pixel_count[15:0];
+
             if (out_x !== (pixel_count % IMAGE_W)) begin
                 $display("STATIC_SOURCE_X_MISMATCH index=%0d x=%0d", pixel_count, out_x);
                 $finish(1);

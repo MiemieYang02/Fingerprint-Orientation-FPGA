@@ -2,15 +2,11 @@
 
 module hdmi_direction_field_renderer #(
     parameter IMAGE_W = 256,
-    parameter IMAGE_H = 256,
-    parameter MEM_FILE = "fingerprint_static_256.mem",
-    parameter MEM_FILE0 = MEM_FILE,
-    parameter MEM_FILE1 = MEM_FILE,
-    parameter MEM_FILE2 = MEM_FILE
+    parameter IMAGE_H = 256
 ) (
     input  wire        clk,
     input  wire        rst_n,
-    input  wire [1:0]  image_sel,
+    input  wire [7:0]  image_gray,
     input  wire        data_req,
     input  wire [10:0] pixel_xpos,
     input  wire [10:0] pixel_ypos,
@@ -19,6 +15,7 @@ module hdmi_direction_field_renderer #(
     input  wire        read_block_active,
     output wire [4:0]  read_block_x,
     output wire [4:0]  read_block_y,
+    output wire [15:0] image_read_addr,
     output reg  [15:0] pixel_data
 );
 
@@ -48,7 +45,8 @@ wire [3:0] cell_x = field_x[3:0];
 wire [3:0] cell_y = field_y[3:0];
 wire [7:0] image_x = field_x[8:1];
 wire [7:0] image_y = field_y[8:1];
-wire [15:0] image_addr = image_y * IMAGE_W + image_x;
+wire [15:0] image_addr = (IMAGE_W == 256) ? {image_y, image_x} : (image_y * IMAGE_W + image_x);
+assign image_read_addr = in_field ? image_addr : 16'd0;
 
 wire signed [6:0] cell_sx = $signed({1'b0, cell_x}) - 7'sd8;
 wire signed [6:0] cell_sy = $signed({1'b0, cell_y}) - 7'sd8;
@@ -125,28 +123,6 @@ wire direction_line = read_block_active && (
 assign read_block_x = in_field ? field_x[8:4] : 5'd0;
 assign read_block_y = in_field ? field_y[8:4] : 5'd0;
 
-(* rom_style = "block" *) reg [7:0] image_mem0 [0:IMAGE_W*IMAGE_H-1];
-(* rom_style = "block" *) reg [7:0] image_mem1 [0:IMAGE_W*IMAGE_H-1];
-(* rom_style = "block" *) reg [7:0] image_mem2 [0:IMAGE_W*IMAGE_H-1];
-
-initial begin
-    $readmemh(MEM_FILE0, image_mem0);
-    $readmemh(MEM_FILE1, image_mem1);
-    $readmemh(MEM_FILE2, image_mem2);
-end
-
-function [7:0] selected_pixel;
-    input [1:0] sel;
-    input [15:0] addr;
-    begin
-        case (sel)
-            2'd1: selected_pixel = image_mem1[addr];
-            2'd2: selected_pixel = image_mem2[addr];
-            default: selected_pixel = image_mem0[addr];
-        endcase
-    end
-endfunction
-
 function [15:0] gray_to_rgb565;
     input [7:0] gray;
     begin
@@ -154,21 +130,42 @@ function [15:0] gray_to_rgb565;
     end
 endfunction
 
+reg data_req_d;
+reg in_field_d;
+reg wait_field_d;
+reg direction_line_d;
+reg top_bar_d;
+reg [3:0] top_bar_index_d;
+
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         pixel_data <= BLACK;
-    end else if (!data_req) begin
-        pixel_data <= BLACK;
-    end else if (in_field) begin
-        if (!frame_ready) begin
-            pixel_data <= WAIT_BG;
-        end else if (direction_line) begin
-            pixel_data <= WHITE;
-        end else begin
-            pixel_data <= gray_to_rgb565(selected_pixel(image_sel, image_addr));
-        end
-    end else if (pixel_ypos < 11'd64) begin
-        case (pixel_xpos[10:7])
+        data_req_d <= 1'b0;
+        in_field_d <= 1'b0;
+        wait_field_d <= 1'b0;
+        direction_line_d <= 1'b0;
+        top_bar_d <= 1'b0;
+        top_bar_index_d <= 4'd0;
+    end else begin
+        data_req_d <= data_req;
+        in_field_d <= in_field;
+        wait_field_d <= in_field && !frame_ready;
+        direction_line_d <= direction_line;
+        top_bar_d <= (pixel_ypos < 11'd64);
+        top_bar_index_d <= pixel_xpos[10:7];
+
+        if (!data_req_d) begin
+            pixel_data <= BLACK;
+        end else if (in_field_d) begin
+            if (wait_field_d) begin
+                pixel_data <= WAIT_BG;
+            end else if (direction_line_d) begin
+                pixel_data <= WHITE;
+            end else begin
+                pixel_data <= gray_to_rgb565(image_gray);
+            end
+        end else if (top_bar_d) begin
+            case (top_bar_index_d)
             4'd0: pixel_data <= WHITE;
             4'd1: pixel_data <= YELLOW;
             4'd2: pixel_data <= CYAN;
@@ -177,9 +174,10 @@ always @(posedge clk or negedge rst_n) begin
             4'd5: pixel_data <= RED;
             4'd6: pixel_data <= ORANGE;
             default: pixel_data <= BLUE;
-        endcase
-    end else begin
-        pixel_data <= DARK;
+            endcase
+        end else begin
+            pixel_data <= DARK;
+        end
     end
 end
 
