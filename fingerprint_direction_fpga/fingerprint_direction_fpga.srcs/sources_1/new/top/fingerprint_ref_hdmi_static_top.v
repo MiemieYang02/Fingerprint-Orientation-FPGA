@@ -3,6 +3,8 @@
 module fingerprint_ref_hdmi_static_top(
     input  wire       sys_clk,
     input  wire       sys_rst_n,
+    input  wire       switch1,
+    input  wire       key2,
     input  wire       hpdin,
     output wire       tmds_clk_p,
     output wire       tmds_clk_n,
@@ -32,10 +34,16 @@ wire [4:0] read_block_y;
 wire [2:0] read_block_dir;
 wire read_block_active;
 wire direction_frame_ready;
+wire [1:0] image_sel;
 
 assign rst_n = sys_rst_n & locked;
+// Demo selector: key2 is active-low in the board examples.
+// key2 released: switch1=0/1 selects image 0/1. key2 pressed selects image 2.
+assign image_sel = {~key2, switch1};
 
-localparam MEM_FILE = "fingerprint_reality_256.mem";
+localparam MEM_FILE0 = "fingerprint_0_256.mem";
+localparam MEM_FILE1 = "fingerprint_1_256.mem";
+localparam MEM_FILE2 = "fingerprint_2_256.mem";
 
 ref_hdmi_clock_gen u_clock_gen (
     .clk_in(sys_clk),
@@ -48,10 +56,13 @@ ref_hdmi_clock_gen u_clock_gen (
 // Static fingerprint image path for hardware validation before camera/DDR3 input.
 // The downstream Sobel/CORDIC/statistics pipeline is the same real stream core.
 fpga_orientation_static_top #(
-    .MEM_FILE(MEM_FILE)
+    .MEM_FILE0(MEM_FILE0),
+    .MEM_FILE1(MEM_FILE1),
+    .MEM_FILE2(MEM_FILE2)
 ) u_orientation_static_top (
     .clk(pixel_clk),
     .rst_n(rst_n),
+    .image_sel(image_sel),
     .block_valid(block_valid),
     .block_active(block_active),
     .block_x(block_x),
@@ -76,10 +87,13 @@ direction_field_buffer u_direction_field_buffer (
 );
 
 hdmi_direction_field_renderer #(
-    .MEM_FILE(MEM_FILE)
+    .MEM_FILE0(MEM_FILE0),
+    .MEM_FILE1(MEM_FILE1),
+    .MEM_FILE2(MEM_FILE2)
 ) u_renderer (
     .clk(pixel_clk),
     .rst_n(rst_n),
+    .image_sel(image_sel),
     .data_req(data_req),
     .pixel_xpos(pixel_xpos),
     .pixel_ypos(pixel_ypos),

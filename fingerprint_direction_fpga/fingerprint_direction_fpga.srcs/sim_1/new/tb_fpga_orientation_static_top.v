@@ -5,6 +5,7 @@ module tb_fpga_orientation_static_top;
 
     reg clk;
     reg rst_n;
+    reg [1:0] image_sel;
 
     wire block_valid;
     wire block_active;
@@ -24,6 +25,7 @@ module tb_fpga_orientation_static_top;
     ) dut (
         .clk(clk),
         .rst_n(rst_n),
+        .image_sel(image_sel),
         .block_valid(block_valid),
         .block_active(block_active),
         .block_x(block_x),
@@ -39,6 +41,7 @@ module tb_fpga_orientation_static_top;
 
     initial begin
         rst_n = 1'b0;
+        image_sel = 2'd0;
         block_count = 0;
         nonzero_count = 0;
         active_count = 0;

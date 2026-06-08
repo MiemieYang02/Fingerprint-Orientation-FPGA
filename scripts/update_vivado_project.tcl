@@ -50,6 +50,9 @@ add_missing_files sources_1 $src_files
 set mem_files [list \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image fingerprint_static_256.mem] \
   [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image fingerprint_reality_256.mem] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image fingerprint_0_256.mem] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image fingerprint_1_256.mem] \
+  [file join $root_dir fingerprint_direction_fpga fingerprint_direction_fpga.srcs sources_1 new image fingerprint_2_256.mem] \
 ]
 add_missing_files sources_1 $mem_files
 foreach f $mem_files {

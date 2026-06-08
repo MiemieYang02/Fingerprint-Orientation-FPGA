@@ -3,10 +3,14 @@
 module hdmi_direction_field_renderer #(
     parameter IMAGE_W = 256,
     parameter IMAGE_H = 256,
-    parameter MEM_FILE = "fingerprint_static_256.mem"
+    parameter MEM_FILE = "fingerprint_static_256.mem",
+    parameter MEM_FILE0 = MEM_FILE,
+    parameter MEM_FILE1 = MEM_FILE,
+    parameter MEM_FILE2 = MEM_FILE
 ) (
     input  wire        clk,
     input  wire        rst_n,
+    input  wire [1:0]  image_sel,
     input  wire        data_req,
     input  wire [10:0] pixel_xpos,
     input  wire [10:0] pixel_ypos,
@@ -121,11 +125,27 @@ wire direction_line = read_block_active && (
 assign read_block_x = in_field ? field_x[8:4] : 5'd0;
 assign read_block_y = in_field ? field_y[8:4] : 5'd0;
 
-(* rom_style = "block" *) reg [7:0] image_mem [0:IMAGE_W*IMAGE_H-1];
+(* rom_style = "block" *) reg [7:0] image_mem0 [0:IMAGE_W*IMAGE_H-1];
+(* rom_style = "block" *) reg [7:0] image_mem1 [0:IMAGE_W*IMAGE_H-1];
+(* rom_style = "block" *) reg [7:0] image_mem2 [0:IMAGE_W*IMAGE_H-1];
 
 initial begin
-    $readmemh(MEM_FILE, image_mem);
+    $readmemh(MEM_FILE0, image_mem0);
+    $readmemh(MEM_FILE1, image_mem1);
+    $readmemh(MEM_FILE2, image_mem2);
 end
+
+function [7:0] selected_pixel;
+    input [1:0] sel;
+    input [15:0] addr;
+    begin
+        case (sel)
+            2'd1: selected_pixel = image_mem1[addr];
+            2'd2: selected_pixel = image_mem2[addr];
+            default: selected_pixel = image_mem0[addr];
+        endcase
+    end
+endfunction
 
 function [15:0] gray_to_rgb565;
     input [7:0] gray;
@@ -145,7 +165,7 @@ always @(posedge clk or negedge rst_n) begin
         end else if (direction_line) begin
             pixel_data <= WHITE;
         end else begin
-            pixel_data <= gray_to_rgb565(image_mem[image_addr]);
+            pixel_data <= gray_to_rgb565(selected_pixel(image_sel, image_addr));
         end
     end else if (pixel_ypos < 11'd64) begin
         case (pixel_xpos[10:7])

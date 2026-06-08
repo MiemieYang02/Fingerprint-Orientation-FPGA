@@ -3,6 +3,7 @@
 module tb_hdmi_direction_field_renderer;
     reg clk;
     reg rst_n;
+    reg [1:0] image_sel;
     reg data_req;
     reg [10:0] pixel_xpos;
     reg [10:0] pixel_ypos;
@@ -20,6 +21,7 @@ module tb_hdmi_direction_field_renderer;
     ) dut (
         .clk(clk),
         .rst_n(rst_n),
+        .image_sel(image_sel),
         .data_req(data_req),
         .pixel_xpos(pixel_xpos),
         .pixel_ypos(pixel_ypos),
@@ -81,6 +83,7 @@ module tb_hdmi_direction_field_renderer;
     initial begin
         errors = 0;
         rst_n = 1'b0;
+        image_sel = 2'd0;
         data_req = 1'b1;
         frame_ready = 1'b1;
         pixel_xpos = 11'd0;
