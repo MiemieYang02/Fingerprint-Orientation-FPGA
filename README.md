@@ -1,128 +1,344 @@
 # 基于 FPGA 的指纹图像方向场计算与可视化系统
 
-## 项目简介
+## 项目概述
 
-本项目基于 FPGA（Field Programmable Gate Array，现场可编程门阵列）实现指纹图像方向场计算与可视化。系统面向指纹纹线结构分析，使用硬件流水线对灰度指纹图像进行梯度提取、方向角计算、局部方向统计和结果可视化，为后续指纹增强、特征提取和匹配提供基础。
+本项目面向指纹图像结构分析，在 FPGA 上实现从灰度指纹图像输入、Sobel 梯度计算、CORDIC 方向角计算、局部区域统计到方向场可视化输出的完整处理链路。当前工程重点验证“指纹图像进入板子后，经过硬件流水线处理，最终在 HDMI 画面中叠加显示方向场”的核心流程。
 
-系统首先通过 Sobel 算子提取图像的水平和垂直梯度信息，得到梯度分量 `Gx` 和 `Gy`；随后利用 CORDIC（Coordinate Rotation Digital Computer，坐标旋转数字计算机）算法计算方向角；再对图像进行局部区域划分，并统计每个区域内的主方向，得到更加稳定的方向场结果。最终方向场可以通过线段箭头或颜色映射的形式叠加显示在指纹图像上，使指纹纹线走向更加直观。
+当前阶段采用多张 256×256 静态灰度指纹图像作为输入，通过板载 `SW[1:0]` 切换不同图像。系统将指纹图像放大显示到 HDMI 画面中，并把方向场以红色线段叠加在灰度指纹背景上，最后通过 HDMI 接采集卡，在电脑 OBS 中观察结果。
 
-## 项目意义
+项目使用环境：
 
-指纹方向场描述了指纹图像中局部纹线的主方向，是连接底层图像处理和高层指纹特征分析的关键中间结果。准确、稳定的方向场可以用于指纹纹线增强、有效区域分割、核心点和三角点检测，并为后续细节点提取与指纹匹配提供可靠依据。
+- FPGA 器件：Xilinx Artix-7 `XC7A75T-2FGG484`
+- 开发软件：Vivado 2025.2
+- 当前输入：片上静态 ROM 指纹图像
+- 当前输出：HDMI-A 输出到采集卡，在 OBS 中查看
+- 当前顶层：`fingerprint_ref_hdmi_static_top`
 
-与纯软件处理方式相比，FPGA 具有并行度高、流水线能力强、实时性好等特点，适合对图像像素流进行连续处理。本项目通过硬件方式实现 Sobel 梯度计算、CORDIC 方向角求解和分块方向统计，不仅完成方向信息的计算与可视化，也为后续构建实时指纹识别硬件加速系统打下基础。
+## 设计目标
 
-## 项目目标
+本项目的目标不是只做一张仿真图，而是逐步形成可在实际 FPGA 板卡上运行的指纹方向场处理系统。当前已经完成的是静态输入验证阶段，后续可在保持 Sobel、CORDIC 和方向统计主处理链路不变的情况下，把输入端替换为摄像头、DDR3 或其他真实图像输入。
 
-本项目的主要目标包括：
+核心目标包括：
 
-1. 在 FPGA 上实现指纹图像像素流处理框架；
-2. 使用 3×3 图像窗口完成 Sobel 梯度计算；
-3. 根据梯度分量 `Gx` 和 `Gy` 计算局部方向角；
-4. 使用 CORDIC 算法实现适合硬件部署的方向角计算；
-5. 对指纹图像进行局部块划分和方向统计，生成稳定的主方向结果；
-6. 将方向场以线段或颜色映射形式进行可视化；
-7. 完成仿真验证，并为后续摄像头输入、DDR3 缓存和 HDMI 输出集成预留接口。
+1. 将输入图像转换为同步灰度像素流；
+2. 使用 3×3 窗口生成模块为 Sobel 提供邻域像素；
+3. 通过 Sobel 算子计算 `Gx` 和 `Gy`；
+4. 将 Sobel 梯度法线转换为指纹脊线切向方向；
+5. 使用局部块 tensor 统计增强方向稳定性；
+6. 使用 CORDIC 迭代计算方向角并量化为方向编号；
+7. 缓存方向场结果，并叠加到灰度指纹图像上；
+8. 通过 HDMI 输出最终可视化结果。
 
-## 系统整体流程
+## 系统原理图
 
-```text
-输入灰度指纹图像
-        ↓
-3×3 图像窗口生成
-        ↓
-Sobel 梯度计算
-        ↓
-输出 Gx / Gy 梯度分量
-        ↓
-CORDIC 方向角计算
-        ↓
-方向量化
-        ↓
-局部区域方向统计
-        ↓
-方向场生成
-        ↓
-颜色映射或线段叠加显示
+```mermaid
+flowchart TD
+    A["图像输入<br/>当前: 三张静态 256x256 灰度指纹 ROM<br/>后续: OV5640 / DDR3 / 其他图像源"] --> B["灰度像素流接口<br/>pixel_valid + gray + x/y"]
+    B --> C["3x3 窗口生成<br/>pixel_window_3x3"]
+    C --> D["Sobel 梯度计算<br/>输出 Gx / Gy"]
+    D --> E["脊线切向转换<br/>Sobel 梯度是法线<br/>指纹方向场显示脊线切向"]
+    E --> F["8x8 局部块 tensor 统计<br/>抑制单像素噪声"]
+    F --> G["CORDIC atan2 迭代<br/>计算主方向角"]
+    G --> H["方向量化<br/>8 个方向 bin"]
+    H --> I["方向场缓存<br/>32x32 方向块"]
+    I --> J["HDMI 方向线渲染<br/>灰度背景 + 红色方向线"]
+    J --> K["TMDS HDMI 输出"]
+    K --> L["采集卡 / OBS 显示"]
 ```
 
-## 技术路线
+## 当前处理流程
 
-### 1. 图像输入与窗口生成
+### 1. 多图像静态输入
 
-系统以灰度指纹图像作为输入。在当前阶段，输入图像由仿真图像源或静态存储图像提供；后续可扩展为摄像头采集输入。像素流进入系统后，通过行缓存和窗口生成模块形成 3×3 像素邻域，为 Sobel 梯度计算提供数据。
+当前输入端使用 `image_static_mem_source`，将三张 256×256 灰度指纹图像写入一个连续 ROM 中。这样做有两个原因：
+
+- 便于在没有摄像头和 DDR3 的情况下先验证算法链路；
+- 避免为每张图像复制一套 Sobel、CORDIC 和方向统计逻辑。
+
+板上图像选择关系如下：
+
+| `SW[1:0]` | 当前输入图像 |
+| --- | --- |
+| `2'b00` | 第 1 张指纹图 |
+| `2'b01` | 第 2 张指纹图 |
+| `2'b10` | 第 3 张指纹图 |
+| `2'b11` | 保留，默认回到第 1 张 |
+
+对应约束来自开发手册：
+
+- `sw[0]`：SW1，管脚 `N14`
+- `sw[1]`：SW2，管脚 `P16`
 
 ### 2. Sobel 梯度计算
 
-Sobel 模块分别计算水平方向梯度 `Gx` 和垂直方向梯度 `Gy`。梯度结果反映了图像灰度变化的方向和强度，是后续方向角计算的基础。
+像素流进入 `pixel_window_3x3` 后形成 3×3 邻域，再送入 `sobel_core` 计算梯度：
 
-### 3. CORDIC 方向角计算
+- `Gx`：水平方向灰度变化；
+- `Gy`：垂直方向灰度变化。
 
-CORDIC 模块根据 `Gx` 和 `Gy` 计算当前像素点的方向角。CORDIC 算法主要通过移位和加减法完成迭代计算，避免大量乘除法运算，更适合 FPGA 硬件实现。
+Sobel 输出本质上表示灰度变化最快的方向，也就是纹线边缘的法线方向。指纹方向场需要显示的是纹线走向，因此不能直接把 Sobel 梯度角当成最终显示角。
 
-### 4. 方向量化与局部统计
+### 3. 指纹脊线切向方向
 
-方向角结果被量化为有限个方向区间。系统按照固定大小的局部块对方向结果进行统计，选择每个区域中出现最稳定、最有代表性的方向作为该块的主方向，从而降低单个像素噪声对结果的影响。
+项目中已经固定一个重要约定：
 
-### 5. 方向场可视化
+> 显示的方向场必须表示指纹脊线切向方向，不显示 Sobel 梯度法线。
 
-方向场结果可以使用颜色块、方向线段或箭头叠加在原始指纹图像上。当前工程支持生成方向图预览，后续硬件展示目标是通过 HDMI 输出到采集卡，并在 OBS 中查看叠加后的方向场效果。
+当前实现中，`block_tensor_stat` 在局部统计前将 Sobel 梯度旋转到脊线切向方向：
 
-## 当前实现状态
+```text
+ridge_gx = -Gy
+ridge_gy =  Gx
+```
 
-当前工程重点完成算法链路的第一阶段验证：
+随后再进行 tensor 累加和 CORDIC 角度计算。这样比单纯在最后显示阶段临时旋转更符合方向场计算逻辑，也更接近指纹纹线的真实走向。
 
-- 输入规模：256×256 灰度图像；
-- 分块方式：16×16 像素局部块；
-- 方向场规模：16×16 个方向块；
-- 核心模块：图像源、3×3 窗口、Sobel、CORDIC 包装、方向量化、分块方向统计；
-- 输出形式：仿真方向结果和 PNG 方向场预览；
-- 后续目标：接入 OV5640 摄像头、DDR3 帧缓存和 640×480@60Hz HDMI 叠加显示。
+### 4. 局部块 tensor 统计
+
+当前方向统计单位是 `8x8` 源图像块。对于 256×256 图像，会得到 `32x32` 个方向块。相比早期较稀疏的方向线，当前密度更高，更适合观察真实指纹纹理的局部变化。
+
+统计阶段还加入了梯度强度筛选，低梯度像素不会参与方向投票，减少背景、噪声或模糊区域对主方向的干扰。
+
+### 5. CORDIC 方向计算与量化
+
+`cordic_tensor_direction` 对局部 tensor 向量进行 CORDIC 风格的 `atan2` 迭代计算。由于 tensor 编码的是二倍角信息，最终方向角需要做二分处理，再量化到 8 个方向：
+
+| 编号 | 方向角 |
+| --- | --- |
+| 0 | 0° |
+| 1 | 22.5° |
+| 2 | 45° |
+| 3 | 67.5° |
+| 4 | 90° |
+| 5 | 112.5° |
+| 6 | 135° |
+| 7 | 157.5° |
+
+为了让 HDMI 显示结果更贴合指纹纹理，显示端保留已经验证正确的水平和垂直方向，并对斜向方向做镜像修正。这样存储的算法方向和最终显示方向都能保持一致的工程语义：最终画面中的线段跟随指纹脊线，而不是垂直于脊线。
+
+### 6. HDMI 可视化输出
+
+当前 HDMI 显示链路使用参考 HDMI 模块，输出 `1024x768` 时序。显示区域中，256×256 指纹图像被放大为 512×512，方向场以红色线段叠加在灰度背景上：
+
+- 灰度背景：当前选中的指纹图像；
+- 方向线段：红色 `RGB565 = 16'hF800`；
+- 方向块：32×32；
+- 每个方向块在显示区域中占 16×16 像素。
+
+红色线段相比白色线段在灰度指纹背景上更醒目，尤其适合在 OBS 中观察和截图。
 
 ## 工程结构
 
-主要工程文件位于 Vivado 项目目录中：
+主要文件保留在 Vivado 工程目录中，便于 GUI 和脚本使用同一套源文件。
 
 ```text
-fingerprint_direction_fpga/
-  fingerprint_direction_fpga.xpr
-  fingerprint_direction_fpga.srcs/
-    sources_1/new/
-      image/       图像源与窗口生成
-      sobel/       Sobel 梯度计算
-      cordic/      CORDIC 方向角计算包装
-      direction/   方向量化与分块统计
-      display/     HDMI 与方向场显示相关模块
-      top/         顶层模块
-    sim_1/new/     仿真测试文件
-    constrs_1/new/ 约束文件
-
-scripts/           仿真、综合和预览生成脚本
-docs/              项目资料与设计文档
+E:/FPGAvivado/FPGAprojx/
+  README.md
+  scripts/
+    run_xsim_static_source.tcl
+    run_xsim_static_top.tcl
+    run_xsim_hdmi_renderer.tcl
+    run_xsim_ref_hdmi_static_elab.tcl
+    run_synth_ref_hdmi_static.tcl
+    prepare_fingerprint_set.py
+  fingerprint_direction_fpga/
+    fingerprint_direction_fpga.xpr
+    fingerprint_direction_fpga.srcs/
+      sources_1/new/
+        image/
+          image_static_mem_source.v
+          pixel_window_3x3.v
+          fingerprint_0_256.mem
+          fingerprint_1_256.mem
+          fingerprint_2_256.mem
+        sobel/
+          sobel_core.v
+        direction/
+          block_tensor_stat.v
+        cordic/
+          cordic_tensor_direction.v
+        display/
+          direction_field_buffer.v
+          hdmi_direction_field_renderer.v
+          ref_hdmi_top.v
+          ref_video_driver.v
+        top/
+          fpga_orientation_pipeline.v
+          fpga_orientation_static_top.v
+          fingerprint_ref_hdmi_static_top.v
+      sim_1/new/
+        tb_static_image_source.v
+        tb_fpga_orientation_static_top.v
+        tb_hdmi_direction_field_renderer.v
+      constrs_1/new/
+        phase1_base.xdc
 ```
 
-## 仿真与验证
+## 已完成内容
 
-可使用以下脚本进行当前阶段的算法链路验证：
+当前工程已经完成：
+
+- 256×256 灰度指纹静态 ROM 输入；
+- 三张指纹图像通过 `SW[1:0]` 切换；
+- 3×3 窗口生成；
+- Sobel `Gx/Gy` 梯度计算；
+- 梯度法线到指纹脊线切向的方向转换；
+- 8×8 局部块 tensor 方向统计；
+- CORDIC 方向角计算；
+- 8 方向量化；
+- 32×32 方向场缓存；
+- 灰度指纹背景叠加红色方向线；
+- HDMI 输出到采集卡/OBS 的静态演示链路；
+- XSim 仿真、顶层 elaboration 和综合脚本验证。
+
+## 验证方式
+
+### 静态图像源验证
 
 ```powershell
-vivado -mode batch -source scripts/run_xsim_phase1.tcl
+vivado -mode batch -source scripts/run_xsim_static_source.tcl
 ```
 
-可使用以下脚本进行综合检查：
+期望日志包含：
+
+```text
+STATIC_SOURCE_TEST_PASS
+```
+
+### 算法静态顶层验证
 
 ```powershell
-vivado -mode batch -source scripts/run_synth_phase1.tcl
+vivado -mode batch -source scripts/run_xsim_static_top.tcl
 ```
 
-方向场预览图可以通过脚本生成 PNG 文件，便于直接查看和提交展示。
+期望日志包含：
 
-## 后续扩展方向
+```text
+STATIC_TOP_TEST_PASS
+```
 
-后续系统将继续围绕实时显示链路展开：
+### HDMI 方向线渲染验证
 
-1. 接入 OV5640 摄像头作为实时图像输入；
-2. 使用 DDR3 作为帧缓存，解耦采集、处理和显示时序；
-3. 将方向场结果叠加到灰度指纹图像上；
-4. 通过 HDMI 输出到采集卡，并在 OBS 中观察最终效果；
-5. 在方向场基础上继续扩展纹线增强、核心点检测和细节点提取等功能。
+```powershell
+vivado -mode batch -source scripts/run_xsim_hdmi_renderer.tcl
+```
+
+期望日志包含：
+
+```text
+HDMI_RENDER_TEST_PASS
+```
+
+### HDMI 静态顶层 elaboration
+
+```powershell
+vivado -mode batch -source scripts/run_xsim_ref_hdmi_static_elab.tcl
+```
+
+期望日志包含：
+
+```text
+REF_HDMI_STATIC_ELAB_PASS
+```
+
+### 综合检查
+
+```powershell
+vivado -mode batch -source scripts/run_synth_ref_hdmi_static.tcl
+```
+
+最近一次验证结果为：
+
+```text
+synth_design completed successfully
+0 Errors
+0 Critical Warnings
+```
+
+## Vivado 使用步骤
+
+如果要在板子上看当前静态指纹方向场演示，推荐在 Vivado GUI 中重新生成 bitstream，避免工程状态 out-of-date。
+
+1. 打开工程：
+
+   ```text
+   E:/FPGAvivado/FPGAprojx/fingerprint_direction_fpga/fingerprint_direction_fpga.xpr
+   ```
+
+2. 确认顶层模块：
+
+   ```text
+   fingerprint_ref_hdmi_static_top
+   ```
+
+3. 依次运行：
+
+   ```text
+   Run Synthesis
+   Run Implementation
+   Generate Bitstream
+   ```
+
+4. 连接硬件：
+
+   ```text
+   FPGA HDMI-A -> HDMI 采集卡 -> 电脑 OBS
+   ```
+
+5. 在 Hardware Manager 中烧录生成的 bitstream。
+
+6. 在 OBS 中添加视频采集设备，若自动识别异常，可手动设置为当前参考 HDMI 时序对应的分辨率。
+
+7. 使用 `SW1/SW2` 切换三张静态指纹图像。
+
+## 如何替换静态指纹图像
+
+当前工程通过 `scripts/prepare_fingerprint_set.py` 将 `fingers_pics/` 中的输入图片转换为 256×256 灰度 `.mem` 文件和 PNG 预览图。默认输入文件名为：
+
+```text
+fingers_pics/finger_1.png
+fingers_pics/finger_2.png
+fingers_pics/finger_3_reality.png
+```
+
+运行脚本：
+
+```powershell
+python scripts/prepare_fingerprint_set.py
+```
+
+生成结果会写入：
+
+```text
+fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/image/fingerprint_0_256.mem
+fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/image/fingerprint_1_256.mem
+fingerprint_direction_fpga/fingerprint_direction_fpga.srcs/sources_1/new/image/fingerprint_2_256.mem
+```
+
+替换 `.mem` 后需要重新综合、实现并生成 bitstream。
+
+## 项目中已经修正的关键问题
+
+### 1. 方向场不能显示 Sobel 梯度法线
+
+早期显示结果中，方向线容易与指纹纹线垂直。原因是 Sobel 梯度表示的是灰度变化法线，而指纹方向场需要的是脊线切向。当前算法已经在 tensor 统计前完成法线到切向的转换，并在显示端保留斜向修正。
+
+### 2. 方向线密度需要贴近真实指纹纹理
+
+真实指纹图像中局部方向变化比较密集。当前统计块从较稀疏的显示方式调整到 `8x8` 源图像块，对应 `32x32` 方向场，显示线段更密集，更适合观察纹线结构。
+
+### 3. 高密度显示需要避免视觉干扰
+
+白色方向线在部分灰度背景上不够清楚，当前改为红色方向线，便于 OBS 截图和肉眼判断方向场是否贴合纹理。
+
+### 4. 多图像输入不应复制算法链路
+
+当前只在输入端通过 `SW[1:0]` 选择三张 ROM 图像，后面的 Sobel、CORDIC、方向统计和 HDMI 渲染链路只有一套，避免重复逻辑。
+
+### 5. ROM 结构需要考虑综合效率
+
+早期多 ROM 和跨层优化会让 Vivado synthesis 卡在优化阶段。当前将三张图片组织为一个连续 ROM，并对图像源模块保持层级，使综合恢复到可接受时间。
+
+## 总结
+
+本项目完成了 FPGA 指纹方向场计算系统的静态图像验证版本。系统能够从片上 ROM 读取多张灰度指纹图像，经 Sobel、CORDIC 和局部 tensor 统计得到指纹脊线方向场，并通过 HDMI 输出灰度指纹背景与红色方向线叠加结果。
