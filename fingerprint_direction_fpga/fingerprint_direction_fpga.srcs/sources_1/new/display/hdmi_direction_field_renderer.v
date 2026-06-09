@@ -160,7 +160,7 @@ always @(posedge clk or negedge rst_n) begin
             if (wait_field_d) begin
                 pixel_data <= WAIT_BG;
             end else if (direction_line_d) begin
-                pixel_data <= WHITE;
+                pixel_data <= RED;
             end else begin
                 pixel_data <= gray_to_rgb565(image_gray);
             end
